@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'auth_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -86,7 +87,11 @@ class ProfileScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AuthScreen()),
+                        (route) => false,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
@@ -111,10 +116,29 @@ class ProfileScreen extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.all(24.0),
           sliver: SliverToBoxAdapter(
-            child: const Text(
-              'Wallet',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ).animate().fade(duration: 400.ms).slideY(begin: -0.1),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  child: const Text('CC', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                ).animate().fade(duration: 400.ms).scale(begin: const Offset(0.8, 0.8)),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Collins Chukwuemeka',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ).animate().fade(duration: 400.ms, delay: 100.ms).slideX(begin: 0.05),
+                    const Text(
+                      '@kingcollins',
+                      style: TextStyle(fontSize: 15, color: Colors.white60),
+                    ).animate().fade(duration: 400.ms, delay: 200.ms),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         SliverPadding(

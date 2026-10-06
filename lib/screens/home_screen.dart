@@ -8,6 +8,7 @@ import 'airtime_screen.dart';
 import 'data_screen.dart';
 import 'tv_screen.dart';
 import 'electricity_screen.dart';
+import 'fund_account_screen.dart';
 import 'activity_screen.dart';
 import 'pay_screen.dart';
 import 'profile_screen.dart';
@@ -85,20 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Good morning,',
-                      style: TextStyle(fontSize: 14, color: Colors.white60),
-                    ).animate().fade(duration: 400.ms),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Collins',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                    ).animate().fade(duration: 400.ms, delay: 100.ms).slideX(begin: -0.05),
-                  ],
-                ),
+                const Text(
+                  'Good morning, Collins',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                ).animate().fade(duration: 400.ms).slideX(begin: -0.05),
                 _buildWalletIndicator(context).animate().fade(duration: 400.ms, delay: 200.ms),
               ],
             ),
@@ -208,17 +199,49 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Total balance',
-                style: TextStyle(color: Colors.white60, fontSize: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total balance',
+                        style: TextStyle(color: Colors.white60, fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '\$1,245.80',
+                        style: Theme.of(context).textTheme.displayMedium,
+                      )
+                      .animate()
+                      .shimmer(duration: 2000.ms, color: Colors.white.withValues(alpha: 0.5)),
+                    ],
+                  ),
+                  OpenContainer(
+                    closedElevation: 0,
+                    closedColor: Colors.transparent,
+                    openElevation: 0,
+                    openColor: Colors.transparent,
+                    middleColor: Colors.transparent,
+                    closedBuilder: (context, action) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.add, size: 16, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text('Fund', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                    openBuilder: (context, action) => const FundAccountScreen(),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                '\$1,245.80',
-                style: Theme.of(context).textTheme.displayMedium,
-              )
-              .animate()
-              .shimmer(duration: 2000.ms, color: Colors.white.withValues(alpha: 0.5)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
