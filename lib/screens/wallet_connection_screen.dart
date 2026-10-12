@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:animations/animations.dart';
-import 'home_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../routes/app_routes.dart';
+import '../state/wallet_state.dart';
 
 class WalletConnectionScreen extends StatelessWidget {
   const WalletConnectionScreen({super.key});
@@ -15,23 +16,13 @@ class WalletConnectionScreen extends StatelessWidget {
   }) {
     return InkWell(
       onTap: () {
-        Navigator.pushAndRemoveUntil(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(isWalletConnected: true),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return SharedAxisTransition(
-                fillColor: Colors.transparent,
-                animation: animation,
-                secondaryAnimation: secondaryAnimation,
-                transitionType: SharedAxisTransitionType.scaled,
-                child: child,
-              );
-            },
-          ),
-          (route) => false,
+        WalletState.isConnected = true;
+        context.goNamed(
+          AppRouteNames.home,
+          queryParameters: {'connected': 'true'},
         );
       },
+
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(20),

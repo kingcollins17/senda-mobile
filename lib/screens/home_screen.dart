@@ -1,121 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:animations/animations.dart';
-import 'wallet_connection_screen.dart';
-import 'payment_screen.dart';
-import 'bank_transfer_screen.dart';
-import 'airtime_screen.dart';
-import 'data_screen.dart';
-import 'tv_screen.dart';
-import 'electricity_screen.dart';
-import 'fund_account_screen.dart';
-import 'activity_screen.dart';
-import 'pay_screen.dart';
-import 'profile_screen.dart';
+import 'package:go_router/go_router.dart';
 
-class HomeScreen extends StatefulWidget {
+import '../routes/app_routes.dart';
+import '../state/wallet_state.dart';
+
+export 'home_shell.dart';
+
+class HomeScreen extends StatelessWidget {
   final bool isWalletConnected;
 
   const HomeScreen({
     super.key,
-    required this.isWalletConnected,
+    this.isWalletConnected = false,
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-
-  Widget _buildCurrentTab(BuildContext context) {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildHomeContent(context);
-      case 1:
-        return const ActivityScreen();
-      case 2:
-        return const PayScreen();
-      case 3:
-        return const ProfileScreen();
-      default:
-        return _buildHomeContent(context);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: PageTransitionSwitcher(
-          transitionBuilder: (child, animation, secondaryAnimation) {
-            return FadeThroughTransition(
-              animation: animation,
-              secondaryAnimation: secondaryAnimation,
-              fillColor: Colors.black,
-              child: child,
-            );
-          },
-          child: _buildCurrentTab(context),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white38,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), activeIcon: Icon(Icons.history), label: 'Activity'),
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Pay'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: WalletState.isConnectedNotifier,
+      builder: (context, connectedFromState, _) {
+        final connected = isWalletConnected || connectedFromState;
+
+        return CustomScrollView(
+          key: const ValueKey('HomeContent'),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Good morning, Collins',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ).animate().fade(duration: 400.ms).slideX(begin: -0.05),
+                    _buildWalletIndicator(context, connected)
+                        .animate()
+                        .fade(duration: 400.ms, delay: 200.ms),
+                  ],
+                ),
+              ),
+            ),
+            if (connected) ...[
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                sliver: SliverToBoxAdapter(
+                  child: _buildConnectedState(context),
+                ),
+              ),
+            ] else ...[
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                sliver: SliverToBoxAdapter(
+                  child: _buildDisconnectedState(context),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildHomeContent(BuildContext context) {
-    return CustomScrollView(
-      key: const ValueKey('HomeContent'),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          sliver: SliverToBoxAdapter(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Good morning, Collins',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-                ).animate().fade(duration: 400.ms).slideX(begin: -0.05),
-                _buildWalletIndicator(context).animate().fade(duration: 400.ms, delay: 200.ms),
-              ],
-            ),
-          ),
-        ),
-        if (widget.isWalletConnected) ...[
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            sliver: SliverToBoxAdapter(
-              child: _buildConnectedState(context),
-            ),
-          ),
-        ] else ...[
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            sliver: SliverToBoxAdapter(
-              child: _buildDisconnectedState(context),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildWalletIndicator(BuildContext context) {
-    if (widget.isWalletConnected) {
+  Widget _buildWalletIndicator(BuildContext context, bool isConnected) {
+    if (isConnected) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -132,9 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: BoxShape.circle,
               ),
             )
-            .animate(onPlay: (controller) => controller.repeat(reverse: true))
-            .fade(begin: 0.5, end: 1.0, duration: 1000.ms)
-            .scale(begin: const Offset(1, 1), end: const Offset(1.2, 1.2), duration: 1000.ms),
+                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                .fade(begin: 0.5, end: 1.0, duration: 1000.ms)
+                .scale(begin: const Offset(1, 1), end: const Offset(1.2, 1.2), duration: 1000.ms),
             const SizedBox(width: 8),
             const Text(
               '0x8F...42A1',
@@ -144,13 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } else {
-      return OpenContainer(
-        closedElevation: 0,
-        closedColor: Colors.transparent,
-        openElevation: 0,
-        openColor: Colors.transparent,
-        middleColor: Colors.transparent,
-        closedBuilder: (context, action) => Container(
+      return InkWell(
+        onTap: () => context.pushNamed(AppRouteNames.walletConnection),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.1),
@@ -174,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        openBuilder: (context, action) => const WalletConnectionScreen(),
       );
     }
   }
@@ -189,7 +138,10 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.02)],
+              colors: [
+                Colors.white.withValues(alpha: 0.1),
+                Colors.white.withValues(alpha: 0.02),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -214,17 +166,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         '\$1,245.80',
                         style: Theme.of(context).textTheme.displayMedium,
                       )
-                      .animate()
-                      .shimmer(duration: 2000.ms, color: Colors.white.withValues(alpha: 0.5)),
+                          .animate()
+                          .shimmer(duration: 2000.ms, color: Colors.white.withValues(alpha: 0.5)),
                     ],
                   ),
-                  OpenContainer(
-                    closedElevation: 0,
-                    closedColor: Colors.transparent,
-                    openElevation: 0,
-                    openColor: Colors.transparent,
-                    middleColor: Colors.transparent,
-                    closedBuilder: (context, action) => Container(
+                  InkWell(
+                    onTap: () => context.pushNamed(AppRouteNames.fundAccount),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.1),
@@ -234,11 +183,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.add, size: 16, color: Colors.white),
                           SizedBox(width: 4),
-                          Text('Fund', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(
+                            'Fund',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
                         ],
                       ),
                     ),
-                    openBuilder: (context, action) => const FundAccountScreen(),
                   ),
                 ],
               ),
@@ -247,7 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('USDC', style: TextStyle(fontSize: 16)),
-                  Text('\$1,245.80', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    '\$1,245.80',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ],
@@ -282,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () => context.goNamed(AppRouteNames.activity),
               child: const Text('See all', style: TextStyle(color: Colors.white60)),
             ),
           ],
@@ -312,8 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Icon(Icons.account_balance_wallet_outlined, size: 56, color: Colors.white60)
-                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                .slideY(begin: -0.1, end: 0.1, duration: 1500.ms, curve: Curves.easeInOut),
+                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                  .slideY(begin: -0.1, end: 0.1, duration: 1500.ms, curve: Curves.easeInOut),
               const SizedBox(height: 24),
               const Text(
                 'Connect your wallet',
@@ -326,18 +280,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: Colors.white60, height: 1.4, fontSize: 15),
               ),
               const SizedBox(height: 32),
-              OpenContainer(
-                closedElevation: 0,
-                closedColor: Colors.transparent,
-                openElevation: 0,
-                openColor: Colors.transparent,
-                middleColor: Colors.transparent,
-                transitionType: ContainerTransitionType.fade,
-                closedBuilder: (context, action) => ElevatedButton(
-                  onPressed: action,
-                  child: const Text('Connect wallet'),
-                ),
-                openBuilder: (context, action) => const WalletConnectionScreen(),
+              ElevatedButton(
+                onPressed: () => context.pushNamed(AppRouteNames.walletConnection),
+                child: const Text('Connect wallet'),
               ),
             ],
           ),
@@ -348,68 +293,69 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ).animate().fade(duration: 500.ms, delay: 400.ms),
         const SizedBox(height: 16),
-        _buildServiceListItem('Send', Icons.arrow_upward, 0),
-        _buildServiceListItem('Airtime', Icons.phone_android, 1),
-        _buildServiceListItem('Data', Icons.wifi, 2),
-        _buildServiceListItem('Electricity', Icons.electric_bolt, 3),
-        _buildServiceListItem('TV', Icons.tv, 4),
+        _buildServiceListItem(context, 'Send', Icons.arrow_upward, 0),
+        _buildServiceListItem(context, 'Airtime', Icons.phone_android, 1),
+        _buildServiceListItem(context, 'Data', Icons.wifi, 2),
+        _buildServiceListItem(context, 'Electricity', Icons.electric_bolt, 3),
+        _buildServiceListItem(context, 'TV', Icons.tv, 4),
         const SizedBox(height: 24),
       ],
     );
   }
 
   Widget _buildActionCard(BuildContext context, String title, IconData icon, int index) {
-    return OpenContainer(
-      closedElevation: 0,
-      closedColor: Colors.transparent,
-      openElevation: 0,
-      openColor: Colors.transparent,
-      middleColor: Colors.transparent,
-      transitionType: ContainerTransitionType.fade,
-      closedBuilder: (context, action) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (title == 'Send') {
+              context.pushNamed(AppRouteNames.bankTransfer);
+            } else if (title == 'Airtime') {
+              context.pushNamed(AppRouteNames.airtime);
+            } else if (title == 'Data') {
+              context.pushNamed(AppRouteNames.data);
+            } else if (title == 'Electricity') {
+              context.pushNamed(AppRouteNames.electricity);
+            } else if (title == 'TV') {
+              context.pushNamed(AppRouteNames.tv);
+            } else {
+              context.pushNamed(
+                AppRouteNames.paymentFlow,
+                extra: PaymentFlowArgs(
+                  serviceName: title,
+                  serviceIcon: icon,
+                ),
+              );
+            }
+          },
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: action,
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Icon(icon, color: Colors.white),
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: Colors.white),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
           ),
         ),
       ),
-      openBuilder: (context, action) {
-        if (title == 'Send') return const BankTransferScreen();
-        if (title == 'Airtime') return const AirtimeScreen();
-        if (title == 'Data') return const DataScreen();
-        if (title == 'Electricity') return const ElectricityScreen();
-        if (title == 'TV') return const TvScreen();
-        
-        return PaymentFlowScreen(
-          serviceName: title,
-          serviceIcon: icon,
-        );
-      },
     ).animate().fade(duration: 400.ms, delay: (400 + index * 100).ms).scale(begin: const Offset(0.9, 0.9));
   }
 
-  Widget _buildActivityItem(String title, String amount, IconData icon, Color iconColor, int index) {
+  Widget _buildActivityItem(
+      String title, String amount, IconData icon, Color iconColor, int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Row(
@@ -438,7 +384,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().fade(duration: 400.ms, delay: (700 + index * 100).ms).slideX(begin: 0.05);
   }
 
-  Widget _buildServiceListItem(String title, IconData icon, int index) {
+  Widget _buildServiceListItem(
+      BuildContext context, String title, IconData icon, int index) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
@@ -453,15 +400,15 @@ class _HomeScreenState extends State<HomeScreen> {
       trailing: const Icon(Icons.chevron_right, color: Colors.white38),
       onTap: () {
         if (title == 'Send') {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const BankTransferScreen()));
+          context.pushNamed(AppRouteNames.bankTransfer);
         } else if (title == 'Airtime') {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const AirtimeScreen()));
+          context.pushNamed(AppRouteNames.airtime);
         } else if (title == 'Data') {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const DataScreen()));
+          context.pushNamed(AppRouteNames.data);
         } else if (title == 'Electricity') {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectricityScreen()));
+          context.pushNamed(AppRouteNames.electricity);
         } else if (title == 'TV') {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const TvScreen()));
+          context.pushNamed(AppRouteNames.tv);
         }
       },
     ).animate().fade(duration: 400.ms, delay: (500 + index * 100).ms).slideX(begin: 0.05);

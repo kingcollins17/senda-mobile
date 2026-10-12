@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:animations/animations.dart';
-import 'home_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../routes/app_routes.dart';
+import '../state/wallet_state.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -14,22 +16,13 @@ class _AuthScreenState extends State<AuthScreen> {
   int _tabIndex = 0; // 0 for Log In, 1 for Sign Up
 
   void _navigateToHome() {
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(isWalletConnected: true),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SharedAxisTransition(
-            fillColor: Colors.transparent,
-            animation: animation,
-            secondaryAnimation: secondaryAnimation,
-            transitionType: SharedAxisTransitionType.scaled,
-            child: child,
-          );
-        },
-      ),
+    WalletState.isConnected = true;
+    context.goNamed(
+      AppRouteNames.home,
+      queryParameters: {'connected': 'true'},
     );
   }
+
 
   Widget _buildSocialButton(String text, IconData icon) {
     return Container(
@@ -48,11 +41,18 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildTextField(String hint, bool isPassword) {
+  Widget _buildTextField(
+    String hint,
+    bool isPassword, {
+    TextInputType keyboardType = TextInputType.text,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: TextField(
         obscureText: isPassword,
+        keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
         decoration: InputDecoration(
           hintText: hint,
           filled: true,
@@ -72,8 +72,20 @@ class _AuthScreenState extends State<AuthScreen> {
       key: const ValueKey('signup'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTextField('Email address', false).animate().fade().slideX(begin: 0.05),
-        _buildTextField('Password', true).animate().fade(delay: 100.ms).slideX(begin: 0.05),
+        _buildTextField(
+          'Full name',
+          false,
+          textCapitalization: TextCapitalization.words,
+        ).animate().fade().slideX(begin: 0.05),
+        _buildTextField(
+          'Email address',
+          false,
+          keyboardType: TextInputType.emailAddress,
+        ).animate().fade(delay: 100.ms).slideX(begin: 0.05),
+        _buildTextField(
+          'Password',
+          true,
+        ).animate().fade(delay: 200.ms).slideX(begin: 0.05),
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
@@ -81,12 +93,12 @@ class _AuthScreenState extends State<AuthScreen> {
             onPressed: _navigateToHome,
             child: const Text('Create Account'),
           ),
-        ).animate().fade(delay: 200.ms).slideY(begin: 0.1),
+        ).animate().fade(delay: 300.ms).slideY(begin: 0.1),
         const SizedBox(height: 32),
-        const Center(child: Text('Or continue with', style: TextStyle(color: Colors.white60))).animate().fade(delay: 300.ms),
+        const Center(child: Text('Or continue with', style: TextStyle(color: Colors.white60))).animate().fade(delay: 400.ms),
         const SizedBox(height: 24),
-        _buildSocialButton('Google', Icons.g_mobiledata).animate().fade(delay: 400.ms).slideY(begin: 0.1),
-        _buildSocialButton('Apple', Icons.apple).animate().fade(delay: 500.ms).slideY(begin: 0.1),
+        _buildSocialButton('Google', Icons.g_mobiledata).animate().fade(delay: 500.ms).slideY(begin: 0.1),
+        _buildSocialButton('Apple', Icons.apple).animate().fade(delay: 600.ms).slideY(begin: 0.1),
       ],
     );
   }

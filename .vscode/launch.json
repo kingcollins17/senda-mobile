@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "senda",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=PROJECT_ID={your_project_id}"
+      ]
+    },
+    {
+      "name": "senda (from .env file)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define-from-file=.env"
+      ]
+    }
+  ]
+}

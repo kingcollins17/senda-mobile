@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:animations/animations.dart';
-import 'payment_screen.dart';
-import 'bank_transfer_screen.dart';
-import 'airtime_screen.dart';
-import 'data_screen.dart';
-import 'tv_screen.dart';
-import 'electricity_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../routes/app_routes.dart';
 
 class PayScreen extends StatelessWidget {
   const PayScreen({super.key});
@@ -22,41 +17,42 @@ class PayScreen extends StatelessWidget {
   }
 
   Widget _buildServiceItem(BuildContext context, String title, IconData icon, int index) {
-    return OpenContainer(
-      closedElevation: 0,
-      closedColor: Colors.transparent,
-      openElevation: 0,
-      openColor: Colors.transparent,
-      middleColor: Colors.transparent,
-      transitionType: ContainerTransitionType.fade,
-      closedBuilder: (context, action) => ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 24, color: Colors.white),
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+      leading: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          shape: BoxShape.circle,
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white38),
-        onTap: action,
+        child: Icon(icon, size: 24, color: Colors.white),
       ),
-      openBuilder: (context, action) {
-        if (title == 'Send Money' || title == 'Bank Transfer') return const BankTransferScreen();
-        if (title == 'Airtime') return const AirtimeScreen();
-        if (title == 'Data Bundle') return const DataScreen();
-        if (title == 'Electricity') return const ElectricityScreen();
-        if (title == 'TV Subscription') return const TvScreen();
-        
-        return PaymentFlowScreen(
-          serviceName: title,
-          serviceIcon: icon,
-        );
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+      onTap: () {
+        if (title == 'Send Money' || title == 'Bank Transfer') {
+          context.pushNamed(AppRouteNames.bankTransfer);
+        } else if (title == 'Airtime') {
+          context.pushNamed(AppRouteNames.airtime);
+        } else if (title == 'Data Bundle') {
+          context.pushNamed(AppRouteNames.data);
+        } else if (title == 'Electricity') {
+          context.pushNamed(AppRouteNames.electricity);
+        } else if (title == 'TV Subscription') {
+          context.pushNamed(AppRouteNames.tv);
+        } else {
+          context.pushNamed(
+            AppRouteNames.paymentFlow,
+            extra: PaymentFlowArgs(
+              serviceName: title,
+              serviceIcon: icon,
+            ),
+          );
+        }
       },
     ).animate().fade(duration: 400.ms, delay: (index * 50).ms).slideX(begin: 0.05);
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
-import 'screens/welcome_screen.dart';
+import 'routes/app_router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,11 +11,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Senda MVP',
       theme: AppTheme.darkTheme,
-      home: const WelcomeScreen(),
+      routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );
   }
 }
+

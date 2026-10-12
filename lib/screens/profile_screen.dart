@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'auth_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../routes/app_routes.dart';
+import '../state/wallet_state.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -87,11 +89,9 @@ class ProfileScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AuthScreen()),
-                        (route) => false,
-                      );
+                      Navigator.pop(context); // close bottom sheet
+                      WalletState.disconnect();
+                      context.goNamed(AppRouteNames.auth);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,

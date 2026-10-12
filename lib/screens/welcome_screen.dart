@@ -1,10 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:animations/animations.dart';
-import 'wallet_connection_screen.dart';
-import 'auth_screen.dart';
-import 'home_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../routes/app_routes.dart';
+import '../state/wallet_state.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -70,19 +69,9 @@ class WelcomeScreen extends StatelessWidget {
                   
                   const Spacer(),
                   
-                  OpenContainer(
-                    closedElevation: 0,
-                    closedColor: Colors.transparent,
-                    openElevation: 0,
-                    openColor: Colors.transparent,
-                    middleColor: Colors.transparent,
-                    transitionType: ContainerTransitionType.fade,
-                    transitionDuration: const Duration(milliseconds: 500),
-                    closedBuilder: (context, action) => ElevatedButton(
-                      onPressed: action,
-                      child: const Text('Sign Up / Log In'),
-                    ),
-                    openBuilder: (context, action) => const AuthScreen(),
+                  ElevatedButton(
+                    onPressed: () => context.pushNamed(AppRouteNames.auth),
+                    child: const Text('Sign Up / Log In'),
                   )
                   .animate()
                   .fade(duration: 500.ms, delay: 600.ms)
@@ -90,22 +79,12 @@ class WelcomeScreen extends StatelessWidget {
                   
                   const SizedBox(height: 16),
 
-                  OpenContainer(
-                    closedElevation: 0,
-                    closedColor: Colors.transparent,
-                    openElevation: 0,
-                    openColor: Colors.transparent,
-                    middleColor: Colors.transparent,
-                    transitionType: ContainerTransitionType.fade,
-                    transitionDuration: const Duration(milliseconds: 500),
-                    closedBuilder: (context, action) => OutlinedButton(
-                      onPressed: action,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white24),
-                      ),
-                      child: const Text('Connect external wallet'),
+                  OutlinedButton(
+                    onPressed: () => context.pushNamed(AppRouteNames.walletConnection),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
                     ),
-                    openBuilder: (context, action) => const WalletConnectionScreen(),
+                    child: const Text('Connect external wallet'),
                   )
                   .animate()
                   .fade(duration: 500.ms, delay: 700.ms)
@@ -115,20 +94,10 @@ class WelcomeScreen extends StatelessWidget {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(isWalletConnected: false),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                              return SharedAxisTransition(
-                                fillColor: Colors.transparent,
-                                animation: animation,
-                                secondaryAnimation: secondaryAnimation,
-                                transitionType: SharedAxisTransitionType.scaled,
-                                child: child,
-                              );
-                            },
-                          ),
+                        WalletState.isConnected = false;
+                        context.goNamed(
+                          AppRouteNames.home,
+                          queryParameters: {'connected': 'false'},
                         );
                       },
                       style: TextButton.styleFrom(
