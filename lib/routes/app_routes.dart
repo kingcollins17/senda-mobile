@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 /// Route names used throughout the Senda application for declarative navigation.
 class AppRouteNames {
   AppRouteNames._();
+  // Splash
+  static const String splash = 'splash';
 
   // Root authentication & onboarding
   static const String welcome = 'welcome';
@@ -31,6 +33,7 @@ class AppRoutePaths {
 
   // Root authentication & onboarding
   static const String root = '/';
+  static const String splash = '/splash';
   static const String welcome = '/welcome';
   static const String auth = '/auth';
   static const String walletConnection = '/connect-wallet';
@@ -56,8 +59,5 @@ class PaymentFlowArgs {
   final String serviceName;
   final IconData serviceIcon;
 
-  const PaymentFlowArgs({
-    required this.serviceName,
-    required this.serviceIcon,
-  });
+  const PaymentFlowArgs({required this.serviceName, required this.serviceIcon});
 }

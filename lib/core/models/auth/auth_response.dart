@@ -9,6 +9,8 @@ part 'auth_response.g.dart';
 /// email-verification token.
 @JsonSerializable()
 class AuthResponse {
+  final String? detail;
+  final String? message;
   @JsonKey(name: 'access_token')
   final String? accessToken;
 
@@ -27,6 +29,8 @@ class AuthResponse {
   final String? verificationToken;
 
   const AuthResponse({
+    this.detail, 
+    this.message,
     this.accessToken,
     this.refreshToken,
     this.tokenType,

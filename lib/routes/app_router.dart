@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:senda/core/models/storage_keys.dart';
+import 'package:senda/core/providers/app_storage_provider.dart';
+import 'package:senda/core/util/log_util.dart';
+import 'package:senda/screens/splash_screen.dart';
 
 import '../state/wallet_state.dart';
 import '../screens/welcome_screen.dart';
@@ -20,15 +24,35 @@ import '../screens/payment_screen.dart';
 import 'app_routes.dart';
 import 'app_transitions.dart';
 
-final GlobalKey<NavigatorState> rootNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> shellNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shell');
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
+final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shell',
+);
 
 /// The main GoRouter configuration for the application.
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
-  initialLocation: AppRoutePaths.welcome,
+  initialLocation: AppRoutePaths.splash,
+  redirect: (context, state) {
+    final token = appStorage?.get(AppStorageKey.authToken);
+    (token as String?)?.debugLog();
+    final isAuthenticated = token != null && token.isNotEmpty;
+    final protectedRoutes = [
+      AppRoutePaths.home,
+      AppRoutePaths.activity,
+      AppRoutePaths.pay,
+      AppRoutePaths.profile,
+    ];
+
+    if (!isAuthenticated && protectedRoutes.contains(state.uri.path)) {
+      return AppRoutePaths.auth;
+    } else if (isAuthenticated && state.uri.path == AppRoutePaths.auth) {
+      return AppRoutePaths.home;
+    }
+    return null; // No redirection needed
+  },
   routes: [
     // Redirect root to welcome
     GoRoute(
@@ -36,6 +60,15 @@ final GoRouter appRouter = GoRouter(
       redirect: (context, state) => AppRoutePaths.welcome,
     ),
 
+    // Splash Screen (initial route)
+    GoRoute(
+      name: AppRouteNames.splash,
+      path: AppRoutePaths.splash,
+      pageBuilder: (context, state) => AppTransitions.sharedAxisScaled(
+        key: state.pageKey,
+        child: const SplashScreen(),
+      ),
+    ),
     // Onboarding & Authentication flows
     GoRoute(
       name: AppRouteNames.welcome,
@@ -82,9 +115,7 @@ final GoRouter appRouter = GoRouter(
 
             return AppTransitions.fadeThrough(
               key: state.pageKey,
-              child: HomeScreen(
-                isWalletConnected: WalletState.isConnected,
-              ),
+              child: HomeScreen(isWalletConnected: WalletState.isConnected),
             );
           },
         ),
@@ -138,10 +169,8 @@ final GoRouter appRouter = GoRouter(
       name: AppRouteNames.data,
       path: AppRoutePaths.data,
       parentNavigatorKey: rootNavigatorKey,
-      pageBuilder: (context, state) => AppTransitions.slideUp(
-        key: state.pageKey,
-        child: const DataScreen(),
-      ),
+      pageBuilder: (context, state) =>
+          AppTransitions.slideUp(key: state.pageKey, child: const DataScreen()),
     ),
     GoRoute(
       name: AppRouteNames.electricity,
@@ -156,10 +185,8 @@ final GoRouter appRouter = GoRouter(
       name: AppRouteNames.tv,
       path: AppRoutePaths.tv,
       parentNavigatorKey: rootNavigatorKey,
-      pageBuilder: (context, state) => AppTransitions.slideUp(
-        key: state.pageKey,
-        child: const TvScreen(),
-      ),
+      pageBuilder: (context, state) =>
+          AppTransitions.slideUp(key: state.pageKey, child: const TvScreen()),
     ),
     GoRoute(
       name: AppRouteNames.fundAccount,

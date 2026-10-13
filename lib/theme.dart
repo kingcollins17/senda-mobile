@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:senda/core/design/app_colors.dart';
 
 class AppTheme {
   static ThemeData get darkTheme {
@@ -7,7 +8,7 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.black,
       colorScheme: const ColorScheme.dark(
         primary: Colors.white,
-        surface: Color(0xFF121212),
+        surface: AppColors.surface,
         onSurface: Colors.white,
       ),
       appBarTheme: const AppBarTheme(
@@ -37,10 +38,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -51,10 +49,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );

@@ -3,25 +3,17 @@ import 'dart:async';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:senda/core/design/app_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Enums & value types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Semantic type that controls the default colour palette of a notification.
-enum AppNotificationType {
-  info,
-  success,
-  warning,
-  error,
-  loading,
-}
+enum AppNotificationType { info, success, warning, error, loading }
 
 /// Where on the screen the notification appears.
-enum AppNotificationPosition {
-  top,
-  bottom,
-}
+enum AppNotificationPosition { top, bottom }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal colour helpers
@@ -31,30 +23,30 @@ extension _NotificationTypeTheme on AppNotificationType {
   Color get backgroundColor {
     switch (this) {
       case AppNotificationType.info:
-        return const Color(0xFF2196F3); // blue
+        return AppColors.info;
       case AppNotificationType.success:
-        return const Color(0xFF43A047); // green
+        return AppColors.success;
       case AppNotificationType.warning:
-        return const Color(0xFFFB8C00); // orange
+        return AppColors.warning;
       case AppNotificationType.error:
-        return const Color(0xFFE53935); // red
+        return AppColors.error;
       case AppNotificationType.loading:
-        return const Color(0xFF546E7A); // blue-grey
+        return AppColors.loading;
     }
   }
 
   Color get indicatorColor {
     switch (this) {
       case AppNotificationType.info:
-        return const Color(0xFF0D47A1);
+        return AppColors.infoIndicator;
       case AppNotificationType.success:
-        return const Color(0xFF1B5E20);
+        return AppColors.successIndicator;
       case AppNotificationType.warning:
-        return const Color(0xFFE65100);
+        return AppColors.warningIndicator;
       case AppNotificationType.error:
-        return const Color(0xFFB71C1C);
+        return AppColors.errorIndicator;
       case AppNotificationType.loading:
-        return const Color(0xFF263238);
+        return AppColors.loadingIndicator;
     }
   }
 
@@ -234,11 +226,13 @@ extension ContextUI on BuildContext {
       duration: duration,
       isDismissible: isDismissible,
       dismissDirection: FlushbarDismissDirection.HORIZONTAL,
-      margin: margin ??
+      margin:
+          margin ??
           (style == FlushbarStyle.FLOATING
               ? const EdgeInsets.all(10)
               : EdgeInsets.zero),
-      borderRadius: borderRadius ??
+      borderRadius:
+          borderRadius ??
           (style == FlushbarStyle.FLOATING
               ? BorderRadius.circular(10)
               : BorderRadius.zero),
@@ -307,21 +301,22 @@ extension ContextUI on BuildContext {
 
     if (!_isMounted) return () {};
 
-    final bar = FlushbarHelper.createLoading(
-      message: message,
-      linearProgressIndicator: const LinearProgressIndicator(
-        backgroundColor: Colors.white24,
-        valueColor: AlwaysStoppedAnimation(Colors.white70),
-      ),
-    ).copyWith(
-      flushbarPosition: position.flushbarPosition,
-      isDismissible: false,
-      duration: null, // persists until explicitly dismissed
-      blockBackgroundInteraction: blockBackground,
-      margin: const EdgeInsets.all(10),
-      borderRadius: BorderRadius.circular(10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    );
+    final bar =
+        FlushbarHelper.createLoading(
+          message: message,
+          linearProgressIndicator: const LinearProgressIndicator(
+            backgroundColor: Colors.white24,
+            valueColor: AlwaysStoppedAnimation(Colors.white70),
+          ),
+        ).copyWith(
+          flushbarPosition: position.flushbarPosition,
+          isDismissible: false,
+          duration: null, // persists until explicitly dismissed
+          blockBackgroundInteraction: blockBackground,
+          margin: const EdgeInsets.all(10),
+          borderRadius: BorderRadius.circular(10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        );
 
     _activeLoadingBar = bar;
 
@@ -344,14 +339,13 @@ extension ContextUI on BuildContext {
     String? title,
     AppNotificationPosition position = AppNotificationPosition.bottom,
     Duration duration = const Duration(seconds: 3),
-  }) =>
-      showToast(
-        message,
-        title: title,
-        type: AppNotificationType.success,
-        position: position,
-        duration: duration,
-      );
+  }) => showToast(
+    message,
+    title: title,
+    type: AppNotificationType.success,
+    position: position,
+    duration: duration,
+  );
 
   /// Shorthand for [showToast] with [AppNotificationType.error].
   Future<void> showError(
@@ -359,14 +353,13 @@ extension ContextUI on BuildContext {
     String? title,
     AppNotificationPosition position = AppNotificationPosition.bottom,
     Duration duration = const Duration(seconds: 4),
-  }) =>
-      showToast(
-        message,
-        title: title,
-        type: AppNotificationType.error,
-        position: position,
-        duration: duration,
-      );
+  }) => showToast(
+    message,
+    title: title,
+    type: AppNotificationType.error,
+    position: position,
+    duration: duration,
+  );
 
   /// Shorthand for [showToast] with [AppNotificationType.warning].
   Future<void> showWarning(
@@ -374,14 +367,13 @@ extension ContextUI on BuildContext {
     String? title,
     AppNotificationPosition position = AppNotificationPosition.bottom,
     Duration duration = const Duration(seconds: 3),
-  }) =>
-      showToast(
-        message,
-        title: title,
-        type: AppNotificationType.warning,
-        position: position,
-        duration: duration,
-      );
+  }) => showToast(
+    message,
+    title: title,
+    type: AppNotificationType.warning,
+    position: position,
+    duration: duration,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

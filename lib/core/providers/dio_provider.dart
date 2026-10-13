@@ -1,14 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:senda/core/models/storage_keys.dart';
+import 'package:senda/core/providers/app_storage_provider.dart';
 import 'package:senda/core/providers/env_provider.dart';
 
 /// Provides a fully-configured [Dio] instance for the app.
 ///
 /// The base URL is pulled from [envProvider] so it is never hard-coded.
-/// Interceptors for logging, auth token injection, and error handling
-/// should be added here as the project grows.
+/// The current access token is attached to requests when one is stored.
 final dioProvider = Provider<Dio>((ref) {
   final env = ref.watch(envProvider);
+  final appStorage = ref.watch(appStorageProvider);
 
   final options = BaseOptions(
     baseUrl: env.apiBaseUrl,
@@ -35,15 +37,25 @@ final dioProvider = Provider<Dio>((ref) {
     return true;
   }());
 
-    dio.interceptors.add(
+  dio.interceptors.add(
     InterceptorsWrapper(
-     
-      onResponse: (response, handler) {
-        if(response.data is Map) {
-          // pass the status code to the response body
-           response.data['status_code'] = response.statusCode;
+      onRequest: (options, handler) {
+        final accessToken = appStorage.get<String>(AppStorageKey.authToken);
+        if (accessToken != null && accessToken.trim().isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer ${accessToken.trim()}';
         }
-       
+        handler.next(options);
+      },
+    ),
+  );
+
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onResponse: (response, handler) {
+        if (response.data is Map) {
+          // pass the status code to the response body
+          response.data['status_code'] = response.statusCode;
+        }
         handler.next(response);
       },
     ),

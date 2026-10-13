@@ -25,6 +25,10 @@ final appStorageProvider = Provider<LocalStorageService>(
   name: 'appStorageProvider',
 );
 
+
+LocalStorageService? _appStorage;
+
+LocalStorageService? get appStorage => _appStorage;
 /// Initialises Hive and opens the [AppBox.app] box.
 ///
 /// Call this **once** in `main()` before `runApp`, then inject the result
@@ -39,5 +43,9 @@ final appStorageProvider = Provider<LocalStorageService>(
 ///   ),
 /// );
 /// ```
-Future<LocalStorageService> initAppStorage() =>
-    LocalStorageService.open(AppBox.app);
+///
+Future<LocalStorageService> initAppStorage() async {
+
+  _appStorage=await LocalStorageService.open(AppBox.app);
+  return appStorage!;
+}

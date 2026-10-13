@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'auth_user.g.dart';
+part 'user.g.dart';
 
 /// Represents the authenticated user object returned by auth endpoints.
 @JsonSerializable()
