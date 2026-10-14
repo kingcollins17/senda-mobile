@@ -1,0 +1,6 @@
+# Example key.properties file for Android release signing
+# Copy this file to key.properties and replace with your actual keystore values
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=upload
+storeFile=upload-keystore.jks
