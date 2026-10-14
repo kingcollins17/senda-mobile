@@ -46,6 +46,21 @@ final GoRouter appRouter = GoRouter(
       AppRoutePaths.profile,
     ];
 
+    // Handle deep link /app prefix and preserve all query parameters
+    final queryString = state.uri.hasQuery ? '?${state.uri.query}' : '';
+    if (state.uri.path == '/app' || state.uri.path == '/app/') {
+      final destination =
+          isAuthenticated ? AppRoutePaths.home : AppRoutePaths.welcome;
+      return '$destination$queryString';
+    }
+    if (state.uri.path.startsWith('/app/')) {
+      final targetPath = state.uri.path.replaceFirst('/app', '');
+      final destination = (targetPath.isEmpty || targetPath == '/')
+          ? (isAuthenticated ? AppRoutePaths.home : AppRoutePaths.welcome)
+          : targetPath;
+      return '$destination$queryString';
+    }
+
     if (!isAuthenticated && protectedRoutes.contains(state.uri.path)) {
       return AppRoutePaths.auth;
     } else if (isAuthenticated && state.uri.path == AppRoutePaths.auth) {

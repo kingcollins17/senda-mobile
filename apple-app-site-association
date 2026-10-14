@@ -5,12 +5,17 @@
       {
         "appID": "<TEAM_ID>.com.kora.senda",
         "paths": [
-          "*"
+          "/app",
+          "/app/*"
         ],
         "components": [
           {
-            "/": "/*",
-            "comment": "Matches all URL paths"
+            "/": "/app/*",
+            "comment": "Matches all URL paths starting with /app"
+          },
+          {
+            "/": "/app",
+            "comment": "Matches /app"
           }
         ]
       }
