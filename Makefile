@@ -6,28 +6,38 @@ gen:
 
 # --- Android Certificate Fingerprints ---
 
-# Resolve home directory across Windows and macOS/Linux
-HOME_DIR ?= $(if $(USERPROFILE),$(USERPROFILE),$(HOME))
+# Use the JDK bundled with Android Studio (macOS).
+# The system has no standalone Java runtime, so we must point to
+# Android Studio's embedded JBR.
+JAVA_HOME ?= /Applications/Android Studio.app/Contents/jbr/Contents/Home
+KEYTOOL   ?= $(JAVA_HOME)/bin/keytool
+
+# Resolve home directory
+HOME_DIR ?= $(HOME)
 DEBUG_KEYSTORE ?= $(HOME_DIR)/.android/debug.keystore
 
-# Default release keystore configuration (can be overridden on command line: make fingerprint-release KEYSTORE=... ALIAS=...)
-RELEASE_KEYSTORE ?= $(if $(KEYSTORE),$(KEYSTORE),android/app/upload-keystore.jks)
-RELEASE_ALIAS ?= $(if $(ALIAS),$(ALIAS),upload)
+# Read release keystore credentials from android/key.properties
+KEY_PROPS       = android/key.properties
+RELEASE_STOREPASS ?= $(shell grep '^storePassword=' $(KEY_PROPS) | cut -d= -f2-)
+RELEASE_KEYPASS   ?= $(shell grep '^keyPassword='   $(KEY_PROPS) | cut -d= -f2-)
+RELEASE_ALIAS     ?= $(if $(ALIAS),$(ALIAS),$(shell grep '^keyAlias=' $(KEY_PROPS) | cut -d= -f2-))
+RELEASE_KEYSTORE  ?= $(if $(KEYSTORE),$(KEYSTORE),android/app/upload-keystore.jks)
 
-# Gradle wrapper executable based on OS
-GRADLEW = $(if $(filter Windows%,$(OS)),gradlew.bat,./gradlew)
+# Gradle wrapper executable (macOS always uses ./gradlew)
+GRADLEW = ./gradlew
 
 # View SHA-1 & SHA-256 fingerprints for Android Debug keystore
 fingerprint-debug:
-	@echo Fetching Android Debug certificate fingerprints...
-	keytool -list -v -keystore "$(DEBUG_KEYSTORE)" -alias androiddebugkey -storepass android -keypass android
+	@echo "Fetching Android Debug certificate fingerprints..."
+	@echo "Using keytool at: $(KEYTOOL)"
+	"$(KEYTOOL)" -list -v -keystore "$(DEBUG_KEYSTORE)" -alias androiddebugkey -storepass android -keypass android
 
 # View SHA-1 & SHA-256 fingerprints for Android Release keystore
 # Usage: make fingerprint-release
 # Or:    make fingerprint-release KEYSTORE=path/to/my-key.jks ALIAS=my-key-alias
 fingerprint-release:
-	@echo Fetching Android Release certificate fingerprints for $(RELEASE_KEYSTORE) (alias: $(RELEASE_ALIAS))...
-	keytool -list -v -keystore "$(RELEASE_KEYSTORE)" -alias "$(RELEASE_ALIAS)"
+	@echo "Fetching Android Release certificate fingerprints for $(RELEASE_KEYSTORE) (alias: $(RELEASE_ALIAS))..."
+	"$(KEYTOOL)" -list -v -keystore "$(RELEASE_KEYSTORE)" -alias "$(RELEASE_ALIAS)" -storepass "$(RELEASE_STOREPASS)" -keypass "$(RELEASE_KEYPASS)"
 
 # Helper to run both debug and release fingerprint checks
 fingerprints: fingerprint-debug
@@ -39,4 +49,4 @@ signing-report:
 # Optional helper to generate a new release keystore if you don't have one yet
 # Usage: make gen-release-keystore
 gen-release-keystore:
-	keytool -genkey -v -keystore "$(RELEASE_KEYSTORE)" -alias "$(RELEASE_ALIAS)" -keyalg RSA -keysize 2048 -validity 10000
+	"$(KEYTOOL)" -genkey -v -keystore "$(RELEASE_KEYSTORE)" -alias "$(RELEASE_ALIAS)" -storepass "$(RELEASE_STOREPASS)" -keypass "$(RELEASE_KEYPASS)" -keyalg RSA -keysize 2048 -validity 10000
