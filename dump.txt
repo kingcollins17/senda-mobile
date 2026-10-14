@@ -1,0 +1,13 @@
+REOWNPROJECT_ID=4ef9248e23ba6da0f1f22df4b60caa90
+
+
+1. Install & initialize — add reown_appkit via flutter pub add reown_appkit, then create a ReownAppKitModal and call _appKitModal.init(). (Installation)_
+
+2. Connect wallet — show the modal with _appKitModal.openModalView(), or use built-in widgets like AppKitModalConnectButton. Once connected, _appKitModal.isConnected is true. (Usage)
+
+3. Get the address — once a session exists:
+
+final chainId = _appKitModal.selectedChain!.chainId;
+final namespace = ReownAppKitModalNetworks.getNamespaceForChainId(chainId);
+final address = _appKitModal.session!.getAddress(namespace);
+4. For a token balance (e.g. USDC) — AppKit doesn't hand you a ready-made {token, address} JSON; you build it yourself. For native balance, listen to _appKitModal.balanceNotifier. For an ERC-20 like USDC, call requestReadContract with functionName: 'balanceOf' against the USDC contract, passing the user's address (see the "Interact with Smart Contracts" section in Actions). Then assemble your own map, e.g. {"token": "USDC", "address": address, "balance": balanceOf}._

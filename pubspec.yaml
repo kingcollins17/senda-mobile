@@ -48,6 +48,7 @@ dependencies:
   json_annotation: ^4.9.0
   flutter_dotenv: ^6.0.1
   another_flushbar: ^2.2.4
+  # reown_appkit: ^1.9.0
 
 dev_dependencies:
   flutter_test:
