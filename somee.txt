@@ -1,0 +1,9 @@
+Deploy to Render Backend (senda-api-6zns.onrender.com): Serve the .well-known endpoints over HTTPS with Content-Type: application/json without redirects:
+
+https://senda-api-6zns.onrender.com/.well-known/assetlinks.json
+https://senda-api-6zns.onrender.com/.well-known/apple-app-site-association (Must be served without .json extension)
+Test Android Deep Link via ADB:
+
+bash
+adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://senda-api-6zns.onrender.com/welcome"
+Productio

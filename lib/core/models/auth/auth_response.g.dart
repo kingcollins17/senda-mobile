@@ -7,6 +7,8 @@ part of 'auth_response.dart';
 // **************************************************************************
 
 AuthResponse _$AuthResponseFromJson(Map<String, dynamic> json) => AuthResponse(
+  detail: json['detail'] as String?,
+  message: json['message'] as String?,
   accessToken: json['access_token'] as String?,
   refreshToken: json['refresh_token'] as String?,
   tokenType: json['token_type'] as String?,
@@ -18,6 +20,8 @@ AuthResponse _$AuthResponseFromJson(Map<String, dynamic> json) => AuthResponse(
 
 Map<String, dynamic> _$AuthResponseToJson(AuthResponse instance) =>
     <String, dynamic>{
+      'detail': instance.detail,
+      'message': instance.message,
       'access_token': instance.accessToken,
       'refresh_token': instance.refreshToken,
       'token_type': instance.tokenType,
