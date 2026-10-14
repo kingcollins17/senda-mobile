@@ -1,5 +1,16 @@
 REOWNPROJECT_ID=4ef9248e23ba6da0f1f22df4b60caa90
 
+https://mainnet.infura.io/v3/324921eded8846e3b040988e2cb68ef5
+
+
+apikey=324921eded8846e3b040988e2cb68ef5
+
+
+curl --url https://mainnet.infura.io/v3/324921eded8846e3b040988e2cb68ef5 \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+
 
 1. Install & initialize — add reown_appkit via flutter pub add reown_appkit, then create a ReownAppKitModal and call _appKitModal.init(). (Installation)_
 
@@ -11,3 +22,4 @@ final chainId = _appKitModal.selectedChain!.chainId;
 final namespace = ReownAppKitModalNetworks.getNamespaceForChainId(chainId);
 final address = _appKitModal.session!.getAddress(namespace);
 4. For a token balance (e.g. USDC) — AppKit doesn't hand you a ready-made {token, address} JSON; you build it yourself. For native balance, listen to _appKitModal.balanceNotifier. For an ERC-20 like USDC, call requestReadContract with functionName: 'balanceOf' against the USDC contract, passing the user's address (see the "Interact with Smart Contracts" section in Actions). Then assemble your own map, e.g. {"token": "USDC", "address": address, "balance": balanceOf}._
+
