@@ -33,7 +33,7 @@ class _ReceiveWalletConnectionScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(walletProvider.notifier).connectWallet(
+      ref.read(walletProvider.notifier).connect(
             provider: widget.provider,
             solanaAddress: widget.solanaAddress,
             ethAddress: widget.ethAddress,

@@ -5,235 +5,56 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:senda/core/design/app_colors.dart';
 import 'package:senda/core/design/widgets/select_banks_screen.dart';
-import 'package:senda/core/enums.dart';
 import 'package:senda/core/providers/bank_transfer_session_provider.dart';
-import 'package:senda/core/providers/wallet_provider.dart';
+import 'package:senda/core/providers/ramp_providers.dart';
+import 'package:senda/core/util/context_util.dart';
+import 'package:senda/core/util/currency_util.dart';
 
 /// Full end-to-end screen for Nigerian off-ramp bank transfers.
 ///
 /// Steps:
-/// 0. Select recipient bank and verify NUBAN account number
-/// 1. Enter fiat transfer amount
-/// 2. Review transfer details, payment network, and fees
-/// 3. Initiating transfer quote & order creation
-/// 4. Success summary with crypto deposit address & payment details
-class BankTransferScreen extends ConsumerStatefulWidget {
+/// 0. Select recipient bank and verify NUBAN account number ([_EnterAccoutNoPage])
+/// 1. Enter fiat transfer amount ([_EnterAmountPage])
+/// 2. Review transfer details, change network via bottom sheet, and get quote ([_ReviewPage])
+/// 3. Main quote page with order summary & pay via wallet button ([_PaymentQuotePage])
+class BankTransferScreen extends ConsumerWidget {
   const BankTransferScreen({super.key});
 
-  @override
-  ConsumerState<BankTransferScreen> createState() => _BankTransferScreenState();
-}
-
-class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
-  late final TextEditingController _accountNumberController;
-  late final TextEditingController _amountController;
-
-  @override
-  void initState() {
-    super.initState();
-    final initialSession = ref.read(bankTransferSessionProvider);
-    _accountNumberController =
-        TextEditingController(text: initialSession.accountNumber);
-    _amountController = TextEditingController(text: initialSession.amount);
-  }
-
-  @override
-  void dispose() {
-    _accountNumberController.dispose();
-    _amountController.dispose();
-    super.dispose();
-  }
-
-  void _onAccountNumberChanged(String val) {
-    final notifier = ref.read(bankTransferSessionProvider.notifier);
-    notifier.setAccountNumber(val);
-    final session = ref.read(bankTransferSessionProvider);
-    if (val.trim().length == 10 && session.bank != null) {
-      notifier.verifyAccount();
-    }
-  }
-
-  void _onAmountChanged(String val) {
-    ref.read(bankTransferSessionProvider.notifier).setAmount(val);
-  }
-
-  void _showBankBottomSheet() async {
-    final session = ref.read(bankTransferSessionProvider);
-    final bank = await SelectBanksScreen.show(
-      context: context,
-      selectedBank: session.bank,
-    );
-    if (bank != null && mounted) {
-      final notifier = ref.read(bankTransferSessionProvider.notifier);
-      notifier.setBank(bank);
-      if (session.accountNumber.trim().length >= 10) {
-        notifier.verifyAccount();
-      }
-    }
-  }
-
-  void _showNetworkBottomSheet(BankTransferSessionState session) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.dialogSurface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Choose payment network',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            for (int i = 0; i < SupportedNetworks.values.length; i++) ...[
-              _buildNetworkOption(
-                network: SupportedNetworks.values[i],
-                isSelected: session.network == SupportedNetworks.values[i],
-                index: i,
-              ),
-              if (i < SupportedNetworks.values.length - 1)
-                const SizedBox(height: 12),
-            ],
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNetworkOption({
-    required SupportedNetworks network,
-    required bool isSelected,
-    required int index,
-  }) {
-    final wallet = ref.watch(walletProvider).value;
-    final address = switch (network) {
-      SupportedNetworks.solana => wallet?.solanaAddress,
-      SupportedNetworks.polygon => wallet?.polygonAddress,
-      SupportedNetworks.ethereum => wallet?.ethAddress,
-    };
-
-    final icon = _networkIcon(network);
-    final subtitle = address != null && address.isNotEmpty
-        ? 'Connected: ${address.substring(0, 6)}...${address.substring(address.length - 4)}'
-        : 'Pay with USDC on ${network.displayName}';
-
-    return InkWell(
-      onTap: () {
-        ref.read(bankTransferSessionProvider.notifier).setNetwork(network);
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? Colors.white : Colors.white24),
-          borderRadius: BorderRadius.circular(16),
-          color: isSelected ? Colors.white.withValues(alpha: 0.05) : null,
-        ),
-        child: Row(
-          children: [
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Colors.white,
-                size: 24,
-              ).animate().scale(curve: Curves.easeOutBack)
-            else
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white38),
-                ),
-              ),
-            const SizedBox(width: 16),
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    network.displayName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fade(delay: (index * 80).ms).slideX(begin: 0.05);
-  }
-
-  void _handleBack(BankTransferSessionState session) {
-    if (session.step > 0 && session.step < 3) {
+  void _handleBack(BuildContext context, WidgetRef ref, int step) {
+    if (step > 0 && step < 3) {
       ref.read(bankTransferSessionProvider.notifier).previousStep();
-    } else if (session.step == 4) {
+    } else if (step == 3) {
       ref.read(bankTransferSessionProvider.notifier).reset();
-      Navigator.pop(context);
-    } else if (session.step != 3) {
-      Navigator.pop(context);
+      ref.read(initiateTransferProvider.notifier).reset();
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).pop();
     }
-  }
-
-  Future<void> _handleInitiateTransfer() async {
-    final notifier = ref.read(bankTransferSessionProvider.notifier);
-    notifier.setStep(3);
-    final order = await notifier.initiateTransfer();
-    if (order != null && mounted) {
-      notifier.setStep(4);
-    }
-  }
-
-  IconData _networkIcon(SupportedNetworks network) {
-    return switch (network) {
-      SupportedNetworks.solana => Icons.auto_awesome_mosaic,
-      SupportedNetworks.polygon => Icons.category,
-      SupportedNetworks.ethereum => Icons.api,
-    };
   }
 
   @override
-  Widget build(BuildContext context) {
-    final session = ref.watch(bankTransferSessionProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final step = ref.watch(bankTransferSessionProvider.select((s) => s.step));
 
     return PopScope(
-      canPop: session.step == 0 || session.step == 4,
+      canPop: step == 0 || step == 3,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        _handleBack(session);
+        _handleBack(context, ref, step);
       },
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Bank Transfer'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => _handleBack(session),
+            onPressed: () => _handleBack(context, ref, step),
           ),
           actions: [
-            if (session.step > 0 && session.step < 3)
+            if (step > 0 && step < 3)
               TextButton(
                 onPressed: () {
                   ref.read(bankTransferSessionProvider.notifier).reset();
-                  _accountNumberController.clear();
-                  _amountController.clear();
+                  ref.read(initiateTransferProvider.notifier).reset();
                 },
                 child: const Text(
                   'Reset',
@@ -256,7 +77,7 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                   child: child,
                 );
               },
-              child: _buildCurrentStep(session),
+              child: _buildStepPage(step),
             ),
           ),
         ),
@@ -264,46 +85,125 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
     );
   }
 
-  Widget _buildCurrentStep(BankTransferSessionState session) {
-    switch (session.step) {
-      case 0:
-        return _buildRecipientStep(
-          key: const ValueKey(0),
-          session: session,
-        );
-      case 1:
-        return _buildAmountStep(
-          key: const ValueKey(1),
-          session: session,
-        );
-      case 2:
-        return _buildReviewStep(
-          key: const ValueKey(2),
-          session: session,
-        );
-      case 3:
-        return _buildProcessingStep(
-          key: const ValueKey(3),
-          session: session,
-        );
-      case 4:
-        return _buildSuccessStep(
-          key: const ValueKey(4),
-          session: session,
-        );
-      default:
-        return const SizedBox();
+  Widget _buildStepPage(int step) {
+    return switch (step) {
+      0 => const _EnterAccoutNoPage(key: ValueKey(0)),
+      1 => const _EnterAmountPage(key: ValueKey(1)),
+      2 => const _ReviewPage(key: ValueKey(2)),
+      3 => const _PaymentQuotePage(key: ValueKey(3)),
+      _ => const SizedBox(),
+    };
+  }
+}
+
+// ── Step 0: Account Number & Recipient Selection ─────────────────────────────
+
+/// Step 0: Input recipient account number and bank selection.
+/// Directly uses [verifyAccountFutureProvider] to verify and display account info.
+class _EnterAccoutNoPage extends ConsumerStatefulWidget {
+  const _EnterAccoutNoPage({super.key});
+
+  @override
+  ConsumerState<_EnterAccoutNoPage> createState() => _EnterAccoutNoPageState();
+}
+
+class _EnterAccoutNoPageState extends ConsumerState<_EnterAccoutNoPage> {
+  late final TextEditingController _accountNumberController;
+
+  @override
+  void initState() {
+    super.initState();
+    _accountNumberController = TextEditingController(
+      text: ref.read(bankTransferSessionProvider).accountNumber,
+    );
+  }
+
+  @override
+  void dispose() {
+    _accountNumberController.dispose();
+    super.dispose();
+  }
+
+  void _onAccountNumberChanged(String val) {
+    ref.read(bankTransferSessionProvider.notifier).setAccountNumber(val);
+  }
+
+  Future<void> _showBankBottomSheet() async {
+    final session = ref.read(bankTransferSessionProvider);
+    final bank = await SelectBanksScreen.show(
+      context: context,
+      selectedBank: session.bank,
+    );
+    if (bank != null && mounted) {
+      ref.read(bankTransferSessionProvider.notifier).setBank(bank);
     }
   }
 
-  // ── Step 0: Recipient Selection ────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    // Keep local controller in sync if riverpod state resets externally
+    ref.listen(bankTransferSessionProvider.select((s) => s.accountNumber), (
+      _,
+      next,
+    ) {
+      if (_accountNumberController.text != next) {
+        _accountNumberController.text = next;
+      }
+    });
 
-  Widget _buildRecipientStep({
-    Key? key,
-    required BankTransferSessionState session,
-  }) {
+    final session = ref.watch(bankTransferSessionProvider);
+
+    // Construct params for verifyAccountFutureProvider when account number and bank are ready
+    final verifyParams =
+        (session.accountNumber.trim().length == 10 &&
+            session.bankCode != null &&
+            session.bankCode!.isNotEmpty)
+        ? VerifyAccountParams(
+            accountNumber: session.accountNumber.trim(),
+            bankCode: session.bankCode!,
+          )
+        : null;
+
+    // Declaratively watch account verification status
+    final verificationAsync = verifyParams != null
+        ? ref.watch(verifyAccountFutureProvider(verifyParams))
+        : null;
+
+    // Sync verified account directly to session state when verification completes
+    if (verifyParams != null) {
+      ref.listen<AsyncValue<VerifyAccountResponse>>(
+        verifyAccountFutureProvider(verifyParams),
+        (previous, next) {
+          next.when(
+            data: (verified) {
+              ref
+                  .read(bankTransferSessionProvider.notifier)
+                  .setVerifiedAccount(verified);
+            },
+            error: (error, stackTrace) {
+              ref
+                  .read(bankTransferSessionProvider.notifier)
+                  .setVerifiedAccount(null);
+            },
+            loading: () {},
+          );
+        },
+      );
+    }
+
+    // Ensure session state remains populated if verification already succeeded
+    final verifiedVal = verificationAsync?.valueOrNull;
+    if (verifiedVal != null && session.verifiedAccount != verifiedVal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref
+              .read(bankTransferSessionProvider.notifier)
+              .setVerifiedAccount(verifiedVal);
+        }
+      });
+    }
+
     return Column(
-      key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
@@ -377,6 +277,7 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
           controller: _accountNumberController,
           keyboardType: TextInputType.number,
           maxLength: 10,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           onChanged: _onAccountNumberChanged,
           style: const TextStyle(fontSize: 16, color: Colors.white),
           decoration: InputDecoration(
@@ -395,128 +296,93 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
 
         const SizedBox(height: 20),
 
-        // Verification Status Feedback
-        if (session.isVerifyingAccount)
-          const Padding(
-            padding: EdgeInsets.only(left: 8.0),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white60,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Verifying account details...',
-                  style: TextStyle(color: Colors.white60),
-                ),
-              ],
-            ),
-          )
-        else if (session.isAccountVerified)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle,
-                  color: Colors.greenAccent,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.resolvedAccountName!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.greenAccent,
-                        ),
-                      ),
-                      if (session.bankName != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          session.bankName!,
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fade().scale(curve: Curves.easeOutBack)
-        else if (session.verificationError != null)
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: AppColors.error,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    session.verificationError!,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => ref
-                      .read(bankTransferSessionProvider.notifier)
-                      .verifyAccount(),
-                  child: const Text(
-                    'Retry',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fade(),
+        // Verification Status Feedback (uses verifyAccountFutureProvider)
+        _VerificationStatusCard(
+          verificationAsync: verificationAsync,
+          cachedVerifiedAccount: session.verifiedAccount,
+          bankName: session.bankName,
+          onRetry: () {
+            if (verifyParams != null) {
+              ref.invalidate(verifyAccountFutureProvider(verifyParams));
+            }
+          },
+        ),
 
         const Spacer(),
         ElevatedButton(
-          onPressed: session.canProceedToAmount
-              ? () => ref.read(bankTransferSessionProvider.notifier).nextStep()
+          onPressed:
+              (session.canProceedToAmount ||
+                  verificationAsync?.valueOrNull != null)
+              ? () {
+                  final verifiedAccount = verificationAsync?.valueOrNull;
+                  if (verifiedAccount != null &&
+                      session.verifiedAccount == null) {
+                    ref
+                        .read(bankTransferSessionProvider.notifier)
+                        .setVerifiedAccount(verifiedAccount);
+                  }
+                  ref.read(bankTransferSessionProvider.notifier).nextStep();
+                }
               : null,
           child: const Text('Continue'),
         ).animate().fade(delay: 300.ms).slideY(begin: 0.1),
       ],
     );
   }
+}
 
-  // ── Step 1: Amount Entry ───────────────────────────────────────────────────
+// ── Step 1: Amount Entry ─────────────────────────────────────────────────────
 
-  Widget _buildAmountStep({
-    Key? key,
-    required BankTransferSessionState session,
-  }) {
+/// Step 1: Input transfer fiat amount.
+/// Accesses and updates [bankTransferSessionProvider] independently.
+class _EnterAmountPage extends ConsumerStatefulWidget {
+  const _EnterAmountPage({super.key});
+
+  @override
+  ConsumerState<_EnterAmountPage> createState() => _EnterAmountPageState();
+}
+
+class _EnterAmountPageState extends ConsumerState<_EnterAmountPage> {
+  late final TextEditingController _amountController;
+
+  static const List<int> _quickPresets = [5000, 10000, 20000, 50000];
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: ref.read(bankTransferSessionProvider).amount,
+    );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  void _onAmountChanged(String val) {
+    ref.read(bankTransferSessionProvider.notifier).setAmount(val);
+  }
+
+  void _onSelectPreset(int amt) {
+    _amountController.text = amt.toString();
+    ref.read(bankTransferSessionProvider.notifier).setAmount(amt.toString());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Keep local controller in sync if riverpod state resets externally
+    ref.listen(bankTransferSessionProvider.select((s) => s.amount), (_, next) {
+      if (_amountController.text != next) {
+        _amountController.text = next;
+      }
+    });
+
+    final session = ref.watch(bankTransferSessionProvider);
+    final canProceed = session.canProceedToReview;
+
     return Column(
-      key: key,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const SizedBox(height: 32),
@@ -529,6 +395,7 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
           controller: _amountController,
           autofocus: true,
           keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 44,
@@ -552,6 +419,17 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
             ),
           ),
         ).animate().fade(delay: 200.ms).slideY(begin: 0.1),
+        if (session.numericAmount != null && session.numericAmount! > 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            session.numericAmount!.toNaira(),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w500,
+            ),
+          ).animate().fade(),
+        ],
         const SizedBox(height: 16),
 
         // Quick amount preset chips
@@ -559,29 +437,24 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
           spacing: 8,
           runSpacing: 8,
           alignment: WrapAlignment.center,
-          children: [5000, 10000, 20000, 50000].map((amt) {
+          children: _quickPresets.map((amt) {
             return ActionChip(
               label: Text(
-                '₦$amt',
+                amt.toNaira(),
                 style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
               backgroundColor: Colors.white.withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              onPressed: () {
-                _amountController.text = amt.toString();
-                ref
-                    .read(bankTransferSessionProvider.notifier)
-                    .setAmount(amt.toString());
-              },
+              onPressed: () => _onSelectPreset(amt),
             );
           }).toList(),
         ).animate().fade(delay: 250.ms),
 
         const Spacer(),
         ElevatedButton(
-          onPressed: session.canProceedToReview
+          onPressed: canProceed
               ? () => ref.read(bankTransferSessionProvider.notifier).nextStep()
               : null,
           child: const Text('Continue'),
@@ -589,15 +462,292 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
       ],
     );
   }
+}
 
-  // ── Step 2: Review Transfer ────────────────────────────────────────────────
+// ── Network Selection Bottom Sheet ──────────────────────────────────────────
 
-  Widget _buildReviewStep({
-    Key? key,
-    required BankTransferSessionState session,
+/// Bottom sheet allowing user to select payment blockchain network directly from review screen.
+class _SelectNetworkBottomSheet extends StatelessWidget {
+  final SupportedNetworks selectedNetwork;
+
+  const _SelectNetworkBottomSheet({required this.selectedNetwork});
+
+  /// Displays the network selector modal bottom sheet.
+  static Future<SupportedNetworks?> show({
+    required BuildContext context,
+    required SupportedNetworks selectedNetwork,
   }) {
+    return showModalBottomSheet<SupportedNetworks>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) =>
+          _SelectNetworkBottomSheet(selectedNetwork: selectedNetwork),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        12,
+        24,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.dialogSurface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Select Network',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Choose blockchain network to settle transfer',
+                    style: TextStyle(color: Colors.white60, fontSize: 13),
+                  ),
+                ],
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          for (int i = 0; i < SupportedNetworks.values.length; i++) ...[
+            _buildNetworkOption(
+              context: context,
+              network: SupportedNetworks.values[i],
+              isSelected: selectedNetwork == SupportedNetworks.values[i],
+              index: i,
+            ),
+            if (i < SupportedNetworks.values.length - 1)
+              const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNetworkOption({
+    required BuildContext context,
+    required SupportedNetworks network,
+    required bool isSelected,
+    required int index,
+  }) {
+    final (subtitle, badge) = switch (network) {
+      SupportedNetworks.solana => (
+        'Instant settlement • Ultra-low fee',
+        'Fastest',
+      ),
+      SupportedNetworks.polygon => ('Low gas fee alternative', null),
+      SupportedNetworks.ethereum => ('Higher network gas fee', null),
+    };
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).pop(network);
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.12),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+          color: isSelected
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.03),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_networkIcon(network), color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        network.displayName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (badge != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.greenAccent.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Text(
+                            badge,
+                            style: const TextStyle(
+                              color: Colors.greenAccent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 22,
+              ).animate().scale(curve: Curves.easeOutBack)
+            else
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white38),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ).animate().fade(delay: (index * 60).ms).slideY(begin: 0.05);
+  }
+}
+
+// ── Step 2: Quote / Review Transfer ──────────────────────────────────────────
+
+/// Step 2: Review transfer details, change network via bottom sheet,
+/// and initiate transfer quote.
+class _ReviewPage extends ConsumerStatefulWidget {
+  const _ReviewPage({super.key});
+
+  @override
+  ConsumerState<_ReviewPage> createState() => _ReviewPageState();
+}
+
+class _ReviewPageState extends ConsumerState<_ReviewPage> {
+  bool _isLoading = false;
+
+  Future<void> _handleSelectNetwork(
+    BuildContext context,
+    WidgetRef ref,
+    SupportedNetworks currentNetwork,
+  ) async {
+    final selected = await _SelectNetworkBottomSheet.show(
+      context: context,
+      selectedNetwork: currentNetwork,
+    );
+    if (selected != null && mounted) {
+      ref.read(bankTransferSessionProvider.notifier).setNetwork(selected);
+    }
+  }
+
+  Future<void> _handleInitiateTransfer() async {
+    final session = ref.read(bankTransferSessionProvider);
+    final request = session.initiateTransferRequest;
+    if (request == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Call initiateTransferProvider directly in the UI
+      final order = await ref
+          .read(initiateTransferProvider.notifier)
+          .initiateTransfer(request, idempotencyKey: session.idempotencyKey);
+
+      if (!mounted) return;
+
+      if (order != null) {
+        ref.read(bankTransferSessionProvider.notifier).setQuote(order);
+        ref.read(bankTransferSessionProvider.notifier).setStep(3);
+      } else {
+        final error = ref.read(initiateTransferProvider).error;
+        if (context.mounted && error != null) {
+          context.showError(error.toString());
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = ref.watch(bankTransferSessionProvider);
+    final initiateTransferAsync = ref.watch(initiateTransferProvider);
+    final isInitiating = _isLoading || initiateTransferAsync.isLoading;
+
     return Column(
-      key: key,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const Text(
@@ -611,7 +761,7 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
         ).animate().fade(delay: 100.ms),
         const SizedBox(height: 8),
         Text(
-          '₦${session.amount}',
+          session.numericAmount?.toNaira() ?? session.amount.toNaira(),
           style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold),
         ).animate().fade(delay: 150.ms).scale(curve: Curves.easeOutBack),
         const SizedBox(height: 6),
@@ -659,40 +809,81 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                 padding: EdgeInsets.symmetric(vertical: 14),
                 child: Divider(color: Colors.white12, height: 1),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Network',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+              InkWell(
+                onTap: isInitiating
+                    ? null
+                    : () => _handleSelectNetwork(context, ref, session.network),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 2,
                   ),
-                  GestureDetector(
-                    onTap: () => _showNetworkBottomSheet(session),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _networkIcon(session.network),
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          session.network.displayName,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Network',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _networkIcon(session.network),
+                              size: 16,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.keyboard_arrow_down,
-                          size: 18,
-                          color: Colors.white70,
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+                          Text(
+                            session.network.displayName,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Change',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(width: 2),
+                                Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 16,
+                                  color: Colors.white70,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
@@ -718,202 +909,364 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
           ),
         ).animate().fade(delay: 300.ms).slideY(begin: 0.1),
 
+        if (initiateTransferAsync.hasError) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    initiateTransferAsync.error.toString(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fade(),
+        ],
+
         const Spacer(),
         ElevatedButton(
-          onPressed: _handleInitiateTransfer,
-          child: const Text('Confirm & Pay'),
+          onPressed: isInitiating ? null : _handleInitiateTransfer,
+          child: isInitiating
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Continue'),
         ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
       ],
     );
   }
+}
 
-  // ── Step 3: Processing & Order Generation ──────────────────────────────────
+// ── Step 3: Success & Main Quote Summary ─────────────────────────────────────
 
-  Widget _buildProcessingStep({
-    Key? key,
-    required BankTransferSessionState session,
-  }) {
-    if (session.transferError != null) {
-      return Center(
-        key: key,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+/// Step 3: Main quote page displaying all transfer quote information,
+/// deposit address, exchange rate, fees, and Pay via Wallet button.
+class _PaymentQuotePage extends ConsumerWidget {
+  const _PaymentQuotePage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(bankTransferSessionProvider);
+    final order =
+        session.quote ??
+        session.transferOrder ??
+        ref.watch(initiateTransferProvider).valueOrNull;
+
+    final fiatDisplay =
+        session.numericAmount?.toNaira() ??
+        order?.fiatAmount?.toNaira() ??
+        session.amount.toNaira();
+
+    final cryptoDisplay = order?.cryptoAmount != null
+        ? order!.cryptoAmount!.toUSDC()
+        : null;
+
+    final feeAmount =
+        order?.fees?.totalFeeNgn ??
+        order?.fees?.platformFeeNgn ??
+        order?.platformFee;
+
+    final depositOrWalletAddress =
+        order?.depositAddress ?? order?.walletAddress;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 32),
+        const Text(
+          "You're paying",
+          style: TextStyle(color: Colors.white70, fontSize: 15),
+        ).animate().fade(delay: 100.ms),
+        const SizedBox(height: 8),
+        Text(
+          cryptoDisplay ?? fiatDisplay,
+          style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold),
+        ).animate().fade(delay: 150.ms).scale(curve: Curves.easeOutBack),
+        const SizedBox(height: 6),
+        Text(
+          'Settling $fiatDisplay to ${session.resolvedAccountName ?? 'recipient'}',
+          style: const TextStyle(color: Colors.white60, fontSize: 13),
+        ).animate().fade(delay: 200.ms),
+        const SizedBox(height: 32),
+
+        // Order / Quote Summary Card
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white12),
+          ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                color: AppColors.error,
-                size: 64,
-              ).animate().scale(curve: Curves.easeOutBack),
-              const SizedBox(height: 24),
-              const Text(
-                'Transfer Failed',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                session.transferError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              const SizedBox(height: 32),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => ref
-                          .read(bankTransferSessionProvider.notifier)
-                          .setStep(2),
-                      child: const Text('Back to Review'),
-                    ),
+                  const Text(
+                    'To',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _handleInitiateTransfer,
-                      child: const Text('Try Again'),
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        session.resolvedAccountName ??
+                            order?.recipient?.accountName ??
+                            'N/A',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${session.bankName ?? order?.recipient?.bankName ?? ''} - ${session.accountNumber}',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: Colors.white12, height: 1),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Network',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        _networkIcon(session.network),
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        session.network.displayName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (order?.rate != null) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.white12, height: 1),
+                ),
+                _SummaryRow(
+                  label: 'Rate',
+                  value:
+                      '1 ${order?.cryptoAsset ?? session.token} ≈ ${order!.rate!.toNaira()}',
+                ),
+              ],
+              if (feeAmount != null) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.white12, height: 1),
+                ),
+                _SummaryRow(label: 'Fee', value: feeAmount.toNaira()),
+              ],
+              if (depositOrWalletAddress != null) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.white12, height: 1),
+                ),
+                _SummaryRowWithCopy(
+                  label: 'Deposit Address',
+                  value: depositOrWalletAddress,
+                ),
+              ],
+              if (order != null) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.white12, height: 1),
+                ),
+                _SummaryRow(
+                  label: 'Expires',
+                  value: _formatExpiry(
+                    order.expiresAt,
+                    isExpired: order.isExpired ?? false,
+                  ),
+                ),
+              ],
             ],
           ),
+        ).animate().fade(delay: 300.ms).slideY(begin: 0.1),
+
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: () {
+            ref.read(bankTransferSessionProvider.notifier).reset();
+            ref.read(initiateTransferProvider.notifier).reset();
+            Navigator.pop(context);
+          },
+          icon: const Icon(Icons.account_balance_wallet_rounded),
+          label: const Text('Pay via Wallet'),
+        ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
+      ],
+    );
+  }
+}
+
+// ── Shared Reusable Components ───────────────────────────────────────────────
+
+/// Visual card feedback for account verification state.
+class _VerificationStatusCard extends StatelessWidget {
+  final AsyncValue<VerifyAccountResponse>? verificationAsync;
+  final VerifyAccountResponse? cachedVerifiedAccount;
+  final String? bankName;
+  final VoidCallback onRetry;
+
+  const _VerificationStatusCard({
+    required this.verificationAsync,
+    this.cachedVerifiedAccount,
+    this.bankName,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (verificationAsync == null && cachedVerifiedAccount == null) {
+      return const SizedBox.shrink();
+    }
+
+    if (verificationAsync != null && verificationAsync!.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.only(left: 8.0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white60,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'Verifying account details...',
+              style: TextStyle(color: Colors.white60),
+            ),
+          ],
         ),
       );
     }
 
-    return Center(
-      key: key,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(color: Colors.white)
-              .animate(onPlay: (controller) => controller.repeat())
-              .shimmer(duration: 1000.ms),
-          const SizedBox(height: 32),
-          const Text(
-            'Processing transfer...',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ).animate().fade().slideY(begin: 0.2),
-          const SizedBox(height: 8),
-          Text(
-            'Creating off-ramp order and payment details',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-          ).animate().fade(delay: 200.ms),
-        ],
-      ),
-    );
-  }
-
-  // ── Step 4: Success & Payment Summary ──────────────────────────────────────
-
-  Widget _buildSuccessStep({
-    Key? key,
-    required BankTransferSessionState session,
-  }) {
-    final order = session.transferOrder;
-
-    return SingleChildScrollView(
-      key: key,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+    if (verificationAsync != null && verificationAsync!.hasError) {
+      final errorMessage = verificationAsync!.error.toString();
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              ),
             ),
-            child: const Icon(
-              Icons.check_circle_rounded,
-              size: 56,
-              color: Colors.greenAccent,
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
-          )
-              .animate()
-              .scale(duration: 600.ms, curve: Curves.easeOutBack)
-              .then()
-              .shimmer(duration: 1000.ms, color: Colors.greenAccent),
-          const SizedBox(height: 24),
-          const Text(
-            'Transfer Order Created!',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ).animate().fade(delay: 150.ms).slideY(begin: 0.1),
-          const SizedBox(height: 8),
-          Text(
-            order != null && order.cryptoAmount != null
-                ? 'Send ${order.cryptoAmount} ${order.cryptoAsset ?? session.token} to complete your transfer'
-                : 'Your transfer to ${session.resolvedAccountName ?? 'recipient'} has been initiated',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
-            ),
-          ).animate().fade(delay: 250.ms),
-          const SizedBox(height: 24),
+          ],
+        ),
+      ).animate().fade();
+    }
 
-          // Order Summary Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: Column(
-              children: [
-                _buildSuccessRow(
-                  'Recipient',
-                  session.resolvedAccountName ?? 'N/A',
-                ),
-                const Divider(color: Colors.white12, height: 24),
-                _buildSuccessRow(
-                  'Bank',
-                  '${session.bankName ?? ''} - ${session.accountNumber}',
-                ),
-                const Divider(color: Colors.white12, height: 24),
-                _buildSuccessRow('Fiat Amount', '₦${session.amount}'),
-                if (order?.cryptoAmount != null) ...[
-                  const Divider(color: Colors.white12, height: 24),
-                  _buildSuccessRow(
-                    'Crypto to Pay',
-                    '${order!.cryptoAmount} ${order.cryptoAsset ?? session.token}',
+    final verified = verificationAsync?.valueOrNull ?? cachedVerifiedAccount;
+    if (verified != null) {
+      final displayName =
+          verified.accountName ?? verified.fullname ?? 'Verified Account';
+      final displayBank = bankName ?? verified.bankName;
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.greenAccent,
+                    ),
                   ),
+                  if (displayBank != null && displayBank.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      displayBank,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ],
-                const Divider(color: Colors.white12, height: 24),
-                _buildSuccessRow('Network', session.network.displayName),
-                if (order?.orderId != null) ...[
-                  const Divider(color: Colors.white12, height: 24),
-                  _buildSuccessRowWithCopy('Order ID', order!.orderId!),
-                ],
-                if (order?.depositAddress != null) ...[
-                  const Divider(color: Colors.white12, height: 24),
-                  _buildSuccessRowWithCopy(
-                    'Deposit Address',
-                    order!.depositAddress!,
-                  ),
-                ],
-              ],
+              ),
             ),
-          ).animate().fade(delay: 350.ms).slideY(begin: 0.1),
+          ],
+        ),
+      ).animate().fade().scale(curve: Curves.easeOutBack);
+    }
 
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(bankTransferSessionProvider.notifier).reset();
-              Navigator.pop(context);
-            },
-            child: const Text('Done'),
-          ).animate().fade(delay: 450.ms).scale(begin: const Offset(0.95, 0.95)),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
+}
 
-  Widget _buildSuccessRow(String label, String value) {
+/// Standard key-value summary row in transfer success card.
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -928,8 +1281,17 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
       ],
     );
   }
+}
 
-  Widget _buildSuccessRowWithCopy(String label, String value) {
+/// Key-value summary row with copy action and feedback.
+class _SummaryRowWithCopy extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryRowWithCopy({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -976,5 +1338,35 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
         ),
       ],
     );
+  }
+}
+
+/// Network icon helper for supported blockchain networks.
+IconData _networkIcon(SupportedNetworks network) {
+  return switch (network) {
+    SupportedNetworks.solana => Icons.auto_awesome_mosaic,
+    SupportedNetworks.polygon => Icons.category,
+    SupportedNetworks.ethereum => Icons.api,
+  };
+}
+
+/// Formats quote expiration timestamp into a human-readable duration string.
+String _formatExpiry(String? expiresAt, {bool isExpired = false}) {
+  if (isExpired) return 'Expired';
+  if (expiresAt == null || expiresAt.trim().isEmpty) return 'in 15 mins';
+  try {
+    final expiry = DateTime.parse(expiresAt).toLocal();
+    final diff = expiry.difference(DateTime.now());
+    if (diff.isNegative) return 'Expired';
+    if (diff.inHours >= 1) {
+      final hours = diff.inHours;
+      final mins = diff.inMinutes % 60;
+      return mins > 0 ? 'in ${hours}h ${mins}m' : 'in ${hours}h';
+    }
+    final mins = diff.inMinutes;
+    if (mins >= 1) return 'in $mins mins';
+    return 'in ${diff.inSeconds}s';
+  } catch (_) {
+    return expiresAt;
   }
 }

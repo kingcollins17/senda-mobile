@@ -25,13 +25,11 @@ final class AuthState {
 
   AuthState copyWith({String? accessToken, String? refreshToken, User? user}) {
     return AuthState(
-      accessToken: accessToken == kNullObject
-          ? null
-          : accessToken ?? this.accessToken,
-      refreshToken: refreshToken == kNullObject
+      accessToken: accessToken == NULL ? null : accessToken ?? this.accessToken,
+      refreshToken: refreshToken == NULL
           ? null
           : refreshToken ?? this.refreshToken,
-      user: user == kNullObject ? null : user ?? this.user,
+      user: user == NULL ? null : user ?? this.user,
     );
   }
 }

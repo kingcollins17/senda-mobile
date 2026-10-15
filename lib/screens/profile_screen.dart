@@ -24,7 +24,7 @@ class ProfileScreen extends ConsumerWidget {
       isDestructive: true,
       icon: Icons.account_balance_wallet_outlined,
       onConfirm: () {
-        ref.read(walletProvider.notifier).disconnectWallet();
+        ref.read(walletProvider.notifier).disconnect();
         context.goNamed(AppRouteNames.auth);
       },
     );

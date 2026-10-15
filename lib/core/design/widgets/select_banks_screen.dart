@@ -48,7 +48,8 @@ class SelectBanksScreen extends ConsumerStatefulWidget {
     BuildContext context,
     Object error,
     VoidCallback onRetry,
-  )? errorBuilder;
+  )?
+  errorBuilder;
 
   /// Custom item builder to override default list tile appearance.
   final Widget Function(
@@ -56,12 +57,13 @@ class SelectBanksScreen extends ConsumerStatefulWidget {
     BankModel bank,
     bool isSelected,
     VoidCallback onSelect,
-  )? itemBuilder;
+  )?
+  itemBuilder;
 
   const SelectBanksScreen({
     super.key,
     this.title = 'Select Bank',
-    this.searchHint = 'Search bank by name or code',
+    this.searchHint = 'Search bank by name',
     this.selectedBank,
     this.onSelect,
     this.backgroundColor,
@@ -80,7 +82,7 @@ class SelectBanksScreen extends ConsumerStatefulWidget {
   static Future<BankModel?> show({
     required BuildContext context,
     String title = 'Select Bank',
-    String searchHint = 'Search bank by name or code',
+    String searchHint = 'Search bank by name ',
     BankModel? selectedBank,
     ValueChanged<BankModel>? onSelect,
     Color? backgroundColor,
@@ -91,17 +93,15 @@ class SelectBanksScreen extends ConsumerStatefulWidget {
     bool isDismissible = true,
     bool enableDrag = true,
     Widget? emptyState,
-    Widget Function(
-      BuildContext context,
-      Object error,
-      VoidCallback onRetry,
-    )? errorBuilder,
+    Widget Function(BuildContext context, Object error, VoidCallback onRetry)?
+    errorBuilder,
     Widget Function(
       BuildContext context,
       BankModel bank,
       bool isSelected,
       VoidCallback onSelect,
-    )? itemBuilder,
+    )?
+    itemBuilder,
   }) {
     return showModalBottomSheet<BankModel>(
       context: context,
@@ -185,7 +185,8 @@ class _SelectBanksScreenState extends ConsumerState<SelectBanksScreen> {
     final query = _debouncedQuery.isEmpty ? null : _debouncedQuery;
     final banksAsync = ref.watch(banksProvider(query));
 
-    final effectiveRadius = widget.borderRadius ??
+    final effectiveRadius =
+        widget.borderRadius ??
         const BorderRadius.vertical(top: Radius.circular(24));
     final effectiveBackground =
         widget.backgroundColor ?? AppColors.dialogSurface;
@@ -282,19 +283,15 @@ class _SelectBanksScreenState extends ConsumerState<SelectBanksScreen> {
           Expanded(
             child: banksAsync.when(
               loading: () => const Center(
-                child: SpinKitFadingCircle(
-                  color: AppColors.loader,
-                  size: 40,
-                ),
+                child: SpinKitFadingCircle(color: AppColors.loader, size: 40),
               ),
-              error: (error, _) =>
-                  widget.errorBuilder != null
-                      ? widget.errorBuilder!(
-                          context,
-                          error,
-                          () => ref.refresh(banksProvider(query)),
-                        )
-                      : _buildDefaultError(error, query),
+              error: (error, _) => widget.errorBuilder != null
+                  ? widget.errorBuilder!(
+                      context,
+                      error,
+                      () => ref.refresh(banksProvider(query)),
+                    )
+                  : _buildDefaultError(error, query),
               data: (banks) {
                 if (banks.isEmpty) {
                   return widget.emptyState ?? _buildDefaultEmptyState();
@@ -309,11 +306,13 @@ class _SelectBanksScreenState extends ConsumerState<SelectBanksScreen> {
                   ),
                   itemBuilder: (context, index) {
                     final bank = banks[index];
-                    final isSelected = widget.selectedBank != null &&
+                    final isSelected =
+                        widget.selectedBank != null &&
                         ((widget.selectedBank?.code != null &&
                                 widget.selectedBank!.code == bank.code) ||
                             (widget.selectedBank?.bankCode != null &&
-                                widget.selectedBank!.bankCode == bank.bankCode) ||
+                                widget.selectedBank!.bankCode ==
+                                    bank.bankCode) ||
                             (widget.selectedBank?.name != null &&
                                 widget.selectedBank!.name == bank.name));
 
@@ -369,20 +368,14 @@ class _SelectBanksScreenState extends ConsumerState<SelectBanksScreen> {
       title: Text(
         bank.name ?? 'Unknown Bank',
         style: TextStyle(
-          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.9),
+          color: isSelected
+              ? Colors.white
+              : Colors.white.withValues(alpha: 0.9),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           fontSize: 15,
         ),
       ),
-      subtitle: (bank.code ?? bank.bankCode) != null
-          ? Text(
-              'Code: ${bank.code ?? bank.bankCode}',
-              style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 12,
-              ),
-            )
-          : null,
+      subtitle: null,
       trailing: isSelected
           ? const Icon(
               Icons.check_circle,
@@ -420,10 +413,7 @@ class _SelectBanksScreenState extends ConsumerState<SelectBanksScreen> {
                   ? 'We couldn\'t find any bank matching "$_debouncedQuery"'
                   : 'No banks currently available',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white38,
-              ),
+              style: const TextStyle(fontSize: 13, color: Colors.white38),
             ),
             if (_debouncedQuery.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -469,10 +459,7 @@ class _SelectBanksScreenState extends ConsumerState<SelectBanksScreen> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white54,
-              ),
+              style: const TextStyle(fontSize: 13, color: Colors.white54),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(

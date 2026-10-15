@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,9 +17,6 @@ final class BankTransferSessionState {
 
   /// Verified account info returned by account verification endpoint.
   final VerifyAccountResponse? verifiedAccount;
-
-  /// Whether an account resolution/verification network request is ongoing.
-  final bool isVerifyingAccount;
 
   /// Human-readable error message if account verification fails.
   final String? verificationError;
@@ -46,8 +42,8 @@ final class BankTransferSessionState {
   /// Order response received after initiating the transfer.
   final InitiateTransferResponse? transferOrder;
 
-  /// Whether transfer order creation is in progress.
-  final bool isInitiatingTransfer;
+  /// Quote response received after initiating the transfer.
+  InitiateTransferResponse? get quote => transferOrder;
 
   /// Human-readable error message if transfer initiation fails.
   final String? transferError;
@@ -56,7 +52,6 @@ final class BankTransferSessionState {
     this.bank,
     this.accountNumber = '',
     this.verifiedAccount,
-    this.isVerifyingAccount = false,
     this.verificationError,
     this.amount = '',
     this.currency = 'NGN',
@@ -65,14 +60,12 @@ final class BankTransferSessionState {
     this.step = 0,
     required this.idempotencyKey,
     this.transferOrder,
-    this.isInitiatingTransfer = false,
     this.transferError,
   });
 
   /// Factory creating an initial transfer session with a freshly generated [idempotencyKey].
-  factory BankTransferSessionState.initial() => BankTransferSessionState(
-        idempotencyKey: _generateIdempotencyKey(),
-      );
+  factory BankTransferSessionState.initial() =>
+      BankTransferSessionState(idempotencyKey: _generateIdempotencyKey());
 
   /// Whether recipient account name has been successfully verified.
   bool get isAccountVerified => verifiedAccount != null;
@@ -89,8 +82,7 @@ final class BankTransferSessionState {
   String? get bankName => bank?.name ?? verifiedAccount?.bankName;
 
   /// Parsed numeric fiat amount.
-  num? get numericAmount =>
-      num.tryParse(amount.replaceAll(',', '').trim());
+  num? get numericAmount => num.tryParse(amount.replaceAll(',', '').trim());
 
   /// Returns whether recipient details are valid and verified to proceed to amount entry.
   bool get canProceedToAmount =>
@@ -99,8 +91,7 @@ final class BankTransferSessionState {
       isAccountVerified;
 
   /// Returns whether transfer details are valid to proceed to review.
-  bool get canProceedToReview =>
-      canProceedToAmount && (numericAmount ?? 0) > 0;
+  bool get canProceedToReview => canProceedToAmount && (numericAmount ?? 0) > 0;
 
   /// Constructs a [TransferRecipient] object from the current session.
   TransferRecipient? get transferRecipient {
@@ -133,7 +124,6 @@ final class BankTransferSessionState {
     Object? bank = _sentinel,
     String? accountNumber,
     Object? verifiedAccount = _sentinel,
-    bool? isVerifyingAccount,
     Object? verificationError = _sentinel,
     String? amount,
     String? currency,
@@ -142,27 +132,25 @@ final class BankTransferSessionState {
     int? step,
     String? idempotencyKey,
     Object? transferOrder = _sentinel,
-    bool? isInitiatingTransfer,
     Object? transferError = _sentinel,
   }) {
     return BankTransferSessionState(
       bank: identical(bank, _sentinel)
           ? this.bank
-          : bank == kNullObject
-              ? null
-              : bank as BankModel?,
+          : bank == NULL
+          ? null
+          : bank as BankModel?,
       accountNumber: accountNumber ?? this.accountNumber,
       verifiedAccount: identical(verifiedAccount, _sentinel)
           ? this.verifiedAccount
-          : verifiedAccount == kNullObject
-              ? null
-              : verifiedAccount as VerifyAccountResponse?,
-      isVerifyingAccount: isVerifyingAccount ?? this.isVerifyingAccount,
+          : verifiedAccount == NULL
+          ? null
+          : verifiedAccount as VerifyAccountResponse?,
       verificationError: identical(verificationError, _sentinel)
           ? this.verificationError
-          : verificationError == kNullObject
-              ? null
-              : verificationError as String?,
+          : verificationError == NULL
+          ? null
+          : verificationError as String?,
       amount: amount ?? this.amount,
       currency: currency ?? this.currency,
       token: token ?? this.token,
@@ -171,16 +159,14 @@ final class BankTransferSessionState {
       idempotencyKey: idempotencyKey ?? this.idempotencyKey,
       transferOrder: identical(transferOrder, _sentinel)
           ? this.transferOrder
-          : transferOrder == kNullObject
-              ? null
-              : transferOrder as InitiateTransferResponse?,
-      isInitiatingTransfer:
-          isInitiatingTransfer ?? this.isInitiatingTransfer,
+          : transferOrder == NULL
+          ? null
+          : transferOrder as InitiateTransferResponse?,
       transferError: identical(transferError, _sentinel)
           ? this.transferError
-          : transferError == kNullObject
-              ? null
-              : transferError as String?,
+          : transferError == NULL
+          ? null
+          : transferError as String?,
     );
   }
 
@@ -214,12 +200,12 @@ class BankTransferSessionNotifier extends Notifier<BankTransferSessionState> {
   void setBank(BankModel? bank) {
     if (state.bank?.code != bank?.code) {
       state = state.copyWith(
-        bank: bank ?? kNullObject,
-        verifiedAccount: kNullObject,
-        verificationError: kNullObject,
+        bank: bank ?? NULL,
+        verifiedAccount: NULL,
+        verificationError: NULL,
       );
     } else {
-      state = state.copyWith(bank: bank ?? kNullObject);
+      state = state.copyWith(bank: bank ?? NULL);
     }
   }
 
@@ -229,8 +215,8 @@ class BankTransferSessionNotifier extends Notifier<BankTransferSessionState> {
     if (state.accountNumber != trimmed) {
       state = state.copyWith(
         accountNumber: trimmed,
-        verifiedAccount: kNullObject,
-        verificationError: kNullObject,
+        verifiedAccount: NULL,
+        verificationError: NULL,
       );
     }
   }
@@ -238,10 +224,18 @@ class BankTransferSessionNotifier extends Notifier<BankTransferSessionState> {
   /// Updates the verified account directly.
   void setVerifiedAccount(VerifyAccountResponse? account) {
     state = state.copyWith(
-      verifiedAccount: account ?? kNullObject,
-      verificationError: kNullObject,
+      verifiedAccount: account ?? NULL,
+      verificationError: NULL,
     );
   }
+
+  /// Updates the transfer order directly.
+  void setTransferOrder(InitiateTransferResponse? order) {
+    state = state.copyWith(transferOrder: order ?? NULL, transferError: NULL);
+  }
+
+  /// Updates the transfer quote directly.
+  void setQuote(InitiateTransferResponse? quote) => setTransferOrder(quote);
 
   /// Updates entered fiat transfer amount.
   void setAmount(String amount) {
@@ -280,103 +274,6 @@ class BankTransferSessionNotifier extends Notifier<BankTransferSessionState> {
     }
   }
 
-  /// Verifies recipient account using current state (or optional overrides).
-  Future<VerifyAccountResponse?> verifyAccount({
-    String? accountNumber,
-    String? bankCode,
-  }) async {
-    final accNum = (accountNumber ?? state.accountNumber).trim();
-    final code = bankCode ?? state.bankCode;
-
-    if (accNum.length < 10) {
-      state = state.copyWith(
-        verificationError: 'Account number must be 10 digits',
-        verifiedAccount: kNullObject,
-      );
-      return null;
-    }
-
-    if (code == null || code.isEmpty) {
-      state = state.copyWith(
-        verificationError: 'Please select a bank first',
-        verifiedAccount: kNullObject,
-      );
-      return null;
-    }
-
-    state = state.copyWith(
-      isVerifyingAccount: true,
-      verificationError: kNullObject,
-    );
-
-    String? capturedError;
-    final data = await ref.read(accountVerificationProvider.notifier).verify(
-      accountNumber: accNum,
-      bankCode: code,
-      onError: (err) => capturedError = err,
-    );
-
-    if (data != null) {
-      state = state.copyWith(
-        verifiedAccount: data,
-        isVerifyingAccount: false,
-        verificationError: kNullObject,
-      );
-      return data;
-    } else {
-      state = state.copyWith(
-        isVerifyingAccount: false,
-        verificationError: capturedError ?? 'Unable to verify account details',
-        verifiedAccount: kNullObject,
-      );
-      return null;
-    }
-  }
-
-  /// Initiates an off-ramp transfer order using current session data.
-  Future<InitiateTransferResponse?> initiateTransfer({
-    String? idempotencyKey,
-    String? xIdempotencyKey,
-  }) async {
-    final request = state.initiateTransferRequest;
-    if (request == null) {
-      state = state.copyWith(
-        transferError: 'Incomplete transfer details. Please review your inputs.',
-      );
-      return null;
-    }
-
-    state = state.copyWith(
-      isInitiatingTransfer: true,
-      transferError: kNullObject,
-    );
-
-    String? capturedError;
-    final key = idempotencyKey ?? state.idempotencyKey;
-    final data =
-        await ref.read(initiateTransferProvider.notifier).initiateTransfer(
-      request,
-      idempotencyKey: key,
-      xIdempotencyKey: xIdempotencyKey ?? key,
-      onError: (err) => capturedError = err,
-    );
-
-    if (data != null) {
-      state = state.copyWith(
-        transferOrder: data,
-        isInitiatingTransfer: false,
-        transferError: kNullObject,
-      );
-      return data;
-    } else {
-      state = state.copyWith(
-        isInitiatingTransfer: false,
-        transferError: capturedError ?? 'Failed to initiate transfer',
-      );
-      return null;
-    }
-  }
-
   /// Clears session state and resets all fields to their defaults with a new idempotency key.
   void reset() {
     state = BankTransferSessionState.initial();
@@ -386,6 +283,6 @@ class BankTransferSessionNotifier extends Notifier<BankTransferSessionState> {
 /// Provider for managing an active bank transfer session across screens.
 final bankTransferSessionProvider =
     NotifierProvider<BankTransferSessionNotifier, BankTransferSessionState>(
-  BankTransferSessionNotifier.new,
-  name: 'bankTransferSessionProvider',
-);
+      BankTransferSessionNotifier.new,
+      name: 'bankTransferSessionProvider',
+    );

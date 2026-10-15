@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:senda/core/providers/wallet_provider.dart';
+
 import 'package:senda/core/providers/app_storage_provider.dart';
 import 'theme.dart';
 import 'routes/app_router.dart';
@@ -29,11 +31,14 @@ Future<void> main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch syncWalletProvider to keep walletConnectionState in sync with backend API
+    ref.watch(syncWalletProvider);
+
     return MaterialApp.router(
       title: 'Senda MVP',
       theme: AppTheme.darkTheme,
@@ -42,4 +47,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

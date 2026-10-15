@@ -18,6 +18,9 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
   createdAt: json['created_at'] == null
       ? null
       : DateTime.parse(json['created_at'] as String),
+  wallet: json['wallet'] == null
+      ? null
+      : UserWallet.fromJson(json['wallet'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
@@ -30,4 +33,5 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
   'auth_provider': instance.authProvider,
   'email_verified': instance.emailVerified,
   'created_at': instance.createdAt?.toIso8601String(),
+  'wallet': instance.wallet?.toJson(),
 };

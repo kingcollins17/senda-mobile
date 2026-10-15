@@ -84,59 +84,6 @@ final verifyAccountFutureProvider = FutureProvider.autoDispose
       throw response.detail ?? 'Unable to verify account details';
     }, name: 'verifyAccountFutureProvider');
 
-/// Manages account verification state with imperatively callable methods.
-class AccountVerificationNotifier
-    extends AutoDisposeAsyncNotifier<VerifyAccountResponse?> {
-  @override
-  FutureOr<VerifyAccountResponse?> build() => null;
-
-  /// Verifies a recipient's bank account by [accountNumber] and [bankCode].
-  Future<VerifyAccountResponse?> verify({
-    required String accountNumber,
-    required String bankCode,
-    void Function(VerifyAccountResponse account)? onSuccess,
-    void Function(String error)? onError,
-  }) async {
-    state = const AsyncValue.loading();
-    try {
-      final client = ref.read(rampClientProvider);
-      final response = await client.verifyAccount({
-        'account_number': accountNumber,
-        'bank_code': bankCode,
-      });
-
-      final data = response.data;
-      if (data != null) {
-        state = AsyncValue.data(data);
-        onSuccess?.call(data);
-        return data;
-      } else {
-        final error = response.detail ?? 'Account verification failed';
-        state = AsyncValue.error(error, StackTrace.current);
-        onError?.call(error);
-        return null;
-      }
-    } catch (e, st) {
-      final message = e.toFriendlyMessage();
-      state = AsyncValue.error(message, st);
-      onError?.call(message);
-      return null;
-    }
-  }
-
-  /// Clears the current verification state.
-  void reset() {
-    state = const AsyncValue.data(null);
-  }
-}
-
-/// Notifier provider for imperative account verification actions and state inspection.
-final accountVerificationProvider =
-    AsyncNotifierProvider.autoDispose<
-      AccountVerificationNotifier,
-      VerifyAccountResponse?
-    >(AccountVerificationNotifier.new, name: 'accountVerificationProvider');
-
 // ─── 3. Initiate Transfer ────────────────────────────────────────────────────
 
 /// Manages off-ramp transfer initiation lifecycle and payment details.

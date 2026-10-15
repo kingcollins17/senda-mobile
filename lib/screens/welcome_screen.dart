@@ -101,23 +101,6 @@ class WelcomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  OutlinedButton(
-                        onPressed: () =>
-                            context.pushNamed(AppRouteNames.walletConnection),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white24),
-                        ),
-                        child: const Text('Connect external wallet'),
-                      )
-                      .animate()
-                      .fade(duration: 500.ms, delay: 700.ms)
-                      .slideY(
-                        begin: 0.2,
-                        duration: 600.ms,
-                        curve: Curves.easeOutQuart,
-                      ),
-
-                  const SizedBox(height: 16),
                   Center(
                     child: TextButton(
                       onPressed: () {
