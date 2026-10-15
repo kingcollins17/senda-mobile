@@ -10,6 +10,7 @@ class AppRouteNames {
   static const String welcome = 'welcome';
   static const String auth = 'auth';
   static const String walletConnection = 'walletConnection';
+  static const String receiveWalletConnection = 'receiveWalletConnection';
 
   // Shell tabs
   static const String home = 'home';
@@ -37,6 +38,7 @@ class AppRoutePaths {
   static const String welcome = '/welcome';
   static const String auth = '/auth';
   static const String walletConnection = '/connect-wallet';
+  static const String receiveWalletConnection = '/receive-wallet-connection';
 
   // Shell tabs
   static const String home = '/home';

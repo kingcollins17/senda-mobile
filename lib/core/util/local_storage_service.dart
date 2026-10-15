@@ -24,6 +24,10 @@ import 'package:senda/core/models/storage_keys.dart';
 /// await storage.put(AppStorageKey.authToken, 'eyJ...');
 /// final token = storage.get<String>(AppStorageKey.authToken);
 /// await storage.delete(AppStorageKey.authToken);
+///
+/// // Or with any custom String key:
+/// await storage.put('customKey', 'value');
+/// final custom = storage.get<String>('customKey');
 /// ```
 class LocalStorageService {
   // ─── Internal state ────────────────────────────────────────────────────────
@@ -54,33 +58,33 @@ class LocalStorageService {
   /// Accepts any Hive-primitive (String, int, double, bool, List, Map)
   /// as well as any object that has a `toJson()` method — it will be
   /// serialised to a JSON string automatically.
-  Future<void> put(AppStorageKey key, dynamic value) async {
+  Future<void> put(String key, dynamic value) async {
     final serialised = _serialise(value);
-    await _box.put(key.key, serialised);
+    await _box.put(key, serialised);
   }
 
   /// Returns the value stored under [key], cast to [T], or null if absent.
   ///
   /// For values stored via [putObject] / objects serialised from JSON,
   /// use [getObject] instead.
-  T? get<T>(AppStorageKey key) {
-    final raw = _box.get(key.key);
+  T? get<T>(String key) {
+    final raw = _box.get(key);
     if (raw == null) return null;
     if (raw is T) return raw;
     return null;
   }
 
   /// Returns the raw value under [key] without any type coercion.
-  dynamic getRaw(AppStorageKey key) => _box.get(key.key);
+  dynamic getRaw(String key) => _box.get(key);
 
   /// Serialises [value] via [toJson] and stores the resulting JSON string.
   ///
   /// Retrieve with [getObject].
-  Future<void> putObject(AppStorageKey key, dynamic value) async {
+  Future<void> putObject(String key, dynamic value) async {
     try {
       // ignore: avoid_dynamic_calls
       final json = value.toJson();
-      await _box.put(key.key, jsonEncode(json));
+      await _box.put(key, jsonEncode(json));
     } catch (e) {
       throw ArgumentError(
         'putObject: value of type ${value.runtimeType} does not have a '
@@ -93,8 +97,8 @@ class LocalStorageService {
   /// [Map<String, dynamic>] to [fromJson].
   ///
   /// Returns null if the key is absent or the stored value is not valid JSON.
-  T? getObject<T>(AppStorageKey key, T Function(Map<String, dynamic>) fromJson) {
-    final raw = _box.get(key.key);
+  T? getObject<T>(String key, T Function(Map<String, dynamic>) fromJson) {
+    final raw = _box.get(key);
     if (raw == null) return null;
     try {
       final decoded = jsonDecode(raw as String);
@@ -106,10 +110,10 @@ class LocalStorageService {
   }
 
   /// Returns `true` if [key] has a non-null value in this box.
-  bool contains(AppStorageKey key) => _box.containsKey(key.key);
+  bool contains(String key) => _box.containsKey(key);
 
   /// Removes the value stored under [key]. No-op if the key is absent.
-  Future<void> delete(AppStorageKey key) => _box.delete(key.key);
+  Future<void> delete(String key) => _box.delete(key);
 
   /// Removes all entries from this box.
   Future<void> clear() => _box.clear().then((_) {});
@@ -119,8 +123,8 @@ class LocalStorageService {
   /// Returns a [Stream] that emits a [BoxEvent] whenever [key] changes.
   ///
   /// Useful for listening to token refreshes, preference changes, etc.
-  Stream<BoxEvent> watch(AppStorageKey key) =>
-      _box.watch(key: key.key);
+  Stream<BoxEvent> watch(String key) =>
+      _box.watch(key: key);
 
   /// Returns a [Stream] that emits on any change in this box.
   Stream<BoxEvent> watchAll() => _box.watch();

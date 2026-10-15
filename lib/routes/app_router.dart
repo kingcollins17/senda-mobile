@@ -5,10 +5,10 @@ import 'package:senda/core/providers/app_storage_provider.dart';
 import 'package:senda/core/util/log_util.dart';
 import 'package:senda/screens/splash_screen.dart';
 
-import '../state/wallet_state.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/auth_screen.dart';
 import '../screens/wallet_connection_screen.dart';
+import '../screens/receive_wallet_connection_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/activity_screen.dart';
 import '../screens/pay_screen.dart';
@@ -49,8 +49,9 @@ final GoRouter appRouter = GoRouter(
     // Handle deep link /app prefix and preserve all query parameters
     final queryString = state.uri.hasQuery ? '?${state.uri.query}' : '';
     if (state.uri.path == '/app' || state.uri.path == '/app/') {
-      final destination =
-          isAuthenticated ? AppRoutePaths.home : AppRoutePaths.welcome;
+      final destination = isAuthenticated
+          ? AppRoutePaths.home
+          : AppRoutePaths.welcome;
       return '$destination$queryString';
     }
     if (state.uri.path.startsWith('/app/')) {
@@ -109,6 +110,54 @@ final GoRouter appRouter = GoRouter(
         child: const WalletConnectionScreen(),
       ),
     ),
+    GoRoute(
+      name: AppRouteNames.receiveWalletConnection,
+      path: AppRoutePaths.receiveWalletConnection,
+      pageBuilder: (context, state) {
+        final queryParams = state.uri.queryParameters;
+        final extraMap = state.extra is Map<String, dynamic>
+            ? state.extra as Map<String, dynamic>
+            : null;
+
+        final provider =
+            queryParams['provider'] ??
+            queryParams['walletProvider'] ??
+            queryParams['wallet_provider'] ??
+            extraMap?['provider']?.toString() ??
+            'metamask';
+        final solanaAddress =
+            queryParams['solanaAddress'] ??
+            queryParams['solana_address'] ??
+            queryParams['solana'] ??
+            extraMap?['solanaAddress']?.toString() ??
+            extraMap?['solana_address']?.toString();
+        final ethAddress =
+            queryParams['ethAddress'] ??
+            queryParams['eth_address'] ??
+            queryParams['ethereumAddress'] ??
+            queryParams['ethereum_address'] ??
+            queryParams['evm_address'] ??
+            queryParams['address'] ??
+            extraMap?['ethAddress']?.toString() ??
+            extraMap?['eth_address']?.toString();
+        final polygonAddress =
+            queryParams['polygonAddress'] ??
+            queryParams['polygon_address'] ??
+            queryParams['polygon'] ??
+            extraMap?['polygonAddress']?.toString() ??
+            extraMap?['polygon_address']?.toString();
+
+        return AppTransitions.slideUp(
+          key: state.pageKey,
+          child: ReceiveWalletConnectionScreen(
+            provider: provider,
+            solanaAddress: solanaAddress,
+            ethAddress: ethAddress,
+            polygonAddress: polygonAddress,
+          ),
+        );
+      },
+    ),
 
     // Persistent Shell for HomeScreen and its tabs
     ShellRoute(
@@ -121,16 +170,13 @@ final GoRouter appRouter = GoRouter(
           name: AppRouteNames.home,
           path: AppRoutePaths.home,
           pageBuilder: (context, state) {
-            final queryConnected = state.uri.queryParameters['connected'];
-            if (queryConnected != null) {
-              WalletState.isConnected = queryConnected == 'true';
-            } else if (state.extra is bool) {
-              WalletState.isConnected = state.extra as bool;
-            }
+            final isConnectedOverride =
+                state.uri.queryParameters['connected'] == 'true' ||
+                (state.extra is bool && state.extra as bool);
 
             return AppTransitions.fadeThrough(
               key: state.pageKey,
-              child: HomeScreen(isWalletConnected: WalletState.isConnected),
+              child: HomeScreen(),
             );
           },
         ),

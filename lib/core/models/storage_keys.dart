@@ -17,27 +17,29 @@ enum AppBox {
 
 /// All keys used across Hive boxes.
 ///
-/// Nest keys inside their owning box using inner enums or a flat enum with
-/// a naming convention. A flat enum is used here for simplicity — prefix
+/// Nest keys inside their owning box using inner classes or a flat class with
+/// a naming convention. A flat class is used here for simplicity — prefix
 /// each key with its box name to make ownership obvious.
-enum AppStorageKey {
+abstract final class AppStorageKey {
+  AppStorageKey._();
+
   // ── AppBox.app ─────────────────────────────────────────────────────────────
 
   /// JWT / session token for the authenticated user.
-  authToken,
+  static const String authToken = 'authToken';
 
   /// Refresh token used to renew [authToken].
-  refreshToken,
+  static const String refreshToken = 'refreshToken';
 
   /// The raw JSON string of the cached current user profile.
-  currentUser,
+  static const String currentUser = 'currentUser';
 
   /// Whether the user has completed the onboarding flow.
-  onboardingComplete,
+  static const String onboardingComplete = 'onboardingComplete';
 
   /// ISO-8601 string of when the local cache was last refreshed.
-  lastCacheRefresh;
+  static const String lastCacheRefresh = 'lastCacheRefresh';
 
-  /// The string key written to the Hive box.
-  String get key => name; // uses the enum member name as the box key
+  /// The JSON string mapping user IDs to their connected wallet connection state.
+  static const String connectedWallet = 'connectedWallet';
 }

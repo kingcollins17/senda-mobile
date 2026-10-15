@@ -5,125 +5,149 @@ import 'package:go_router/go_router.dart';
 import 'package:senda/core/providers/auth_provider.dart';
 import 'package:senda/core/util/log_util.dart';
 
+import '../core/providers/wallet_provider.dart';
 import '../routes/app_routes.dart';
-import '../state/wallet_state.dart';
 
 export 'home_shell.dart';
 
-class HomeScreen extends StatelessWidget {
-  final bool isWalletConnected;
+class HomeScreen extends ConsumerWidget {
+  // final bool? isWalletConnected;
 
-  const HomeScreen({super.key, this.isWalletConnected = false});
+  const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: WalletState.isConnectedNotifier,
-      builder: (context, connectedFromState, _) {
-        final connected = isWalletConnected || connectedFromState;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wallet = ref.watch(walletProvider);
+    final connected = ref.watch(isWalletConnected);
 
-        return CustomScrollView(
-          key: const ValueKey('HomeContent'),
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 16.0,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final authAsync = ref.watch(authProvider);
-                    authAsync.error?.debugLog();
-                    final name = authAsync.value?.user?.name?.trim();
-                    final firstName = name == null || name.isEmpty
-                        ? null
-                        : name.split(RegExp(r'\s+')).first;
-                    final hour = DateTime.now().hour;
-                    final timeGreeting = switch (hour) {
-                      < 12 => 'Good morning',
-                      < 17 => 'Good afternoon',
-                      _ => 'Good evening',
-                    };
-                    final greeting = firstName == null
-                        ? timeGreeting
-                        : '$timeGreeting, $firstName';
+    return CustomScrollView(
+      key: const ValueKey('HomeContent'),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          sliver: SliverToBoxAdapter(
+            child: Consumer(
+              builder: (context, ref, child) {
+                final authAsync = ref.watch(authProvider);
+                authAsync.error?.debugLog();
+                final name = authAsync.value?.user?.name?.trim();
+                final firstName = name == null || name.isEmpty
+                    ? null
+                    : name.split(RegExp(r'\s+')).first;
+                final hour = DateTime.now().hour;
+                final timeGreeting = switch (hour) {
+                  < 12 => 'Good morning',
+                  < 17 => 'Good afternoon',
+                  _ => 'Good evening',
+                };
+                final greeting = firstName == null
+                    ? timeGreeting
+                    : '$timeGreeting, $firstName';
 
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          greeting,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ).animate().fade(duration: 400.ms).slideX(begin: -0.05),
-                        _buildWalletIndicator(
-                          context,
-                          connected,
-                        ).animate().fade(duration: 400.ms, delay: 200.ms),
-                      ],
-                    );
-                  },
-                ),
-              ),
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      greeting,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ).animate().fade(duration: 400.ms).slideX(begin: -0.05),
+                    _buildWalletIndicator(
+                      context,
+                      connected,
+                      wallet: wallet.valueOrNull,
+                    ).animate().fade(duration: 400.ms, delay: 200.ms),
+                  ],
+                );
+              },
             ),
-            if (connected) ...[
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                sliver: SliverToBoxAdapter(
-                  child: _buildConnectedState(context),
-                ),
-              ),
-            ] else ...[
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                sliver: SliverToBoxAdapter(
-                  child: _buildDisconnectedState(context),
-                ),
-              ),
-            ],
-          ],
-        );
-      },
+          ),
+        ),
+        if (connected) ...[
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            sliver: SliverToBoxAdapter(child: _buildConnectedState(context)),
+          ),
+        ] else ...[
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            sliver: SliverToBoxAdapter(child: _buildDisconnectedState(context)),
+          ),
+        ],
+      ],
     );
   }
 
-  Widget _buildWalletIndicator(BuildContext context, bool isConnected) {
+  Widget _buildWalletIndicator(
+    BuildContext context,
+    bool isConnected, {
+    WalletConnectionState? wallet,
+  }) {
     if (isConnected) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.greenAccent,
-                    shape: BoxShape.circle,
+      final addr = wallet?.ethAddress;
+      final solAddr = wallet?.solanaAddress;
+      final displayAddr = addr != null && addr.length > 8
+          ? '${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}'
+          : solAddr != null && solAddr.length > 8
+          ? '${solAddr.substring(0, 4)}...${solAddr.substring(solAddr.length - 4)}'
+          : '0x8F...42A1';
+
+      return InkWell(
+        onTap: () {
+          final queryParams = <String, String>{};
+          if (wallet?.provider != null) {
+            queryParams['provider'] = wallet!.provider!;
+          }
+          if (solAddr != null) queryParams['solanaAddress'] = solAddr;
+          if (addr != null) queryParams['ethAddress'] = addr;
+          if (wallet?.polygonAddress != null) {
+            queryParams['polygonAddress'] = wallet!.polygonAddress!;
+          }
+
+          context.pushNamed(
+            AppRouteNames.receiveWalletConnection,
+            queryParameters: queryParams,
+          );
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                  .animate(
+                    onPlay: (controller) => controller.repeat(reverse: true),
+                  )
+                  .fade(begin: 0.5, end: 1.0, duration: 1000.ms)
+                  .scale(
+                    begin: const Offset(1, 1),
+                    end: const Offset(1.2, 1.2),
+                    duration: 1000.ms,
                   ),
-                )
-                .animate(
-                  onPlay: (controller) => controller.repeat(reverse: true),
-                )
-                .fade(begin: 0.5, end: 1.0, duration: 1000.ms)
-                .scale(
-                  begin: const Offset(1, 1),
-                  end: const Offset(1.2, 1.2),
-                  duration: 1000.ms,
+              const SizedBox(width: 8),
+              Text(
+                displayAddr,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
-            const SizedBox(width: 8),
-            const Text(
-              '0x8F...42A1',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       );
     } else {

@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:senda/core/design/space_particles_background.dart';
 import '../routes/app_routes.dart';
-import '../state/wallet_state.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -122,7 +121,6 @@ class WelcomeScreen extends StatelessWidget {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        WalletState.isConnected = false;
                         context.goNamed(
                           AppRouteNames.home,
                           queryParameters: {'connected': 'false'},
